@@ -27,7 +27,10 @@ struct pos {
 
     float x, y;
 
-    /* use this for pixeled position - i did my best t-t */
+    /* @param pixel 
+    *   true to divide by 32 pixels for true tile. 
+    *   false to multiply by 32 for percise position. 
+    */
     pos by_32(bool pixel = false) const { 
         return (pixel) ? 
             pos{std::floor/*<auto>*/(x/32.0f), std::floor/*<auto>*/(y/32.0f)} : 

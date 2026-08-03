@@ -1,5 +1,4 @@
 #include "pch.hpp"
-#include "database.hpp"
 #include "items.hpp"
 #include "world.hpp"
 #include "on/SetClothing.hpp"
@@ -222,26 +221,26 @@ void send_inventory_state(ENetEvent &event)
 {
     ::peer *pPeer = static_cast<::peer*>(event.peer->data);
 
+    u_int size = 7ull + (pPeer->slots.size() * sizeof(int));
     std::vector<u_char> data = compress_state(::state{
         .type = 0x09, // @note PACKET_SEND_INVENTORY_STATE
         .netid = pPeer->netid,
-        .peer_state = peer_state::S_EXTENDED
+        .peer_state = peer_state::S_EXTENDED,
+        .size = size
     });
+    data.resize(data.size() + size);
+    data[60] = 0x01; // @note enable flag for big backpack
 
-    std::size_t size = pPeer->slots.size();
-    data.resize(data.size() + 5ull + (size * sizeof(int)));
+    int *i32 = reinterpret_cast<int*>(&data[61ull]);
+    *i32++ = pPeer->slot_size;
 
-    int *i32 = reinterpret_cast<int*>(&data[58ull]);
-
-#ifdef _WIN32
-    *i32++ = _byteswap_ulong(pPeer->slot_size);
-    *i32++ = _byteswap_ulong(size);
-#else // @note linux
-    *i32++ = __builtin_bswap32(pPeer->slot_size);
-    *i32++ = __builtin_bswap32(size);
-#endif
+    short *i16 = reinterpret_cast<short*>(&data[65ull]);
+    *i16++ = pPeer->slots.size();
     for (const ::slot &slot : pPeer->slots)
-        *i32++ = slot.id | (slot.count & 0xff) << 16;
+    {
+        *i16++ = slot.id;
+        *i16++ = slot.count;
+    }
 
 	enet_peer_send(event.peer, 0, enet_packet_create(data.data(), data.size(), ENET_PACKET_FLAG_RELIABLE));
 }

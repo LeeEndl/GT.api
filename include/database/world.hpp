@@ -2,11 +2,12 @@
 
 enum wstate3 : u_char
 {
-    S_RIGHT =  0x00,
-    S_LOCKED = 0x10,
-    S_LEFT =   0x20,
-    S_TOGGLE = 0x40, // @note including mailbox which just toggles the visuals
-    S_PUBLIC = 0x80
+    S_RIGHT   = 0x00,
+    S_LOCKED  = 0x10,
+    S_LEFT    = 0x20,
+    S_SPLICED = 0x1d, // @todo understand the percise flags.
+    S_TOGGLE  = 0x40,
+    S_PUBLIC  = 0x80
 };
 
 /* locks that only occupy a number of tiles, and not the whole world. */
@@ -37,22 +38,20 @@ enum lock_state : u_char
 
 u_char get_type(const ::item &item);
 
+#include "database.hpp" // @todo too much space here.
+
 struct block 
 {
-    block(short _fg = 0, short _bg = 0, 
-        std::time_t _tick = 0,
-        std::string _label = "", u_char s3 = 0, u_char s4 = 0
-    ) : fg(_fg), bg(_bg), tick(_tick), label(_label), state(0, 0, s3, s4) {}
+    block(short _fg = 0, short _bg = 0, std::string _label = "") : 
+        fg(_fg), bg(_bg), label(_label), state(0, 0, 0, 0) {}
     
     short fg{0}, bg{0};
     u_char state[4];
-    u_char type;
     std::string label{}; // @note sign/door label @todo store in seperate class
-    std::time_t tick{}; // @note record a point in time for the tile e.g. tree growth, providers, ect.
 
     u_char hits[2] = {0, 0}; // @note fg, bg
 
-    std::vector<u_char> to_blob() const;
+    ::blob to_blob() const;
 };
 #define cord(x,y) (y * 100 + x)
 
@@ -67,9 +66,24 @@ struct door
     ::pos pos{};
 };
 
+struct tree
+{
+    tree(u_int _tick, u_char _fruit, ::pos _pos) : 
+        tick(_tick), fruit(_fruit), pos(_pos) {}
+
+    /* @note MAP data */
+    u_int tick{}; // @note last modified in seconds
+    u_char fruit{};
+
+    ::pos pos{};
+
+    ::blob to_blob(bool seconds = false) const;
+};
+
 struct display
 {
-    display(u_int _id, ::pos _pos) : id(_id), pos(_pos) {}
+    display(u_int _id, ::pos _pos) : 
+        id(_id), pos(_pos) {}
 
     u_int id{};
     ::pos pos{};
@@ -77,7 +91,8 @@ struct display
 
 struct random_block
 {
-    random_block(u_char _value, ::pos _pos) : value(_value), pos(_pos) {}
+    random_block(u_char _value, ::pos _pos) : 
+        value(_value), pos(_pos) {}
 
     u_char value{};
     ::pos pos{};
@@ -85,14 +100,15 @@ struct random_block
 
 struct object 
 {
-    object(u_short _id = 0, u_short _count = 0, ::pos _pos = {0, 0}, u_int _uid = 0) : id(_id), count(_count), pos(_pos), uid(_uid) {}
+    object(u_short _id = 0, u_short _count = 0, ::pos _pos = {0, 0}, u_int _uid = 0) : 
+        id(_id), count(_count), pos(_pos), uid(_uid) {}
     u_short id{};
     u_short count{};
     ::pos pos{};
 
     u_int uid{};
 
-    std::vector<u_char> to_blob();
+    ::blob to_blob() const;
 };
 
 class world 
@@ -130,8 +146,12 @@ public:
     std::vector<::door> doors{};
     std::vector<::display> displays{};
     std::vector<::random_block> random_blocks{};
+    std::vector<::tree> trees{};
 
+    ::pos spawn{}; // @note position of main door
     ::pos weather{};
+
+    std::vector<u_char> serialize();
 };
 extern std::vector<world> worlds;
 

@@ -1,3 +1,3 @@
 #pragma once
 
-std::time_t ticks();
+u_int ticks();

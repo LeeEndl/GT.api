@@ -128,8 +128,8 @@ void tile_change(ENetEvent& event, state state)
                 }
                 case type::PROVIDER:
                 {
-                    if (ticks() - block.tick >= item.tick)
-                    {
+                    //if (ticks() - block.tick >= item.tick)
+                    //{
                         switch (item.id)
                         {
                             case 1008: // @note ATM
@@ -167,17 +167,18 @@ void tile_change(ENetEvent& event, state state)
                                 break;
                             }
                         }
-                        block.tick = ticks();
+                        //block.tick = ticks();
                         send_tile_update(event, std::move(state), block, *world); // @note update countdown on provider.
 
                         pPeer->add_xp(event, 1);
                         return;
-                    }
+                    //}
                     break;
                 }
                 case type::SEED:
                 {
-                    if (ticks() - block.tick >= item.tick) // @todo limit this check.
+                    auto tree = std::ranges::find(world->trees, state.punch, &::tree::pos);
+                    if (ticks() - tree->tick >= item.tick) // @todo limit this check.
                     {
                         block.hits[0] = 99;
                         add_drop(event, ::slot(item.id - 1, ransuu[{2, 12}]), state.punch.by_32(), *world); // @note fruit (from tree)
@@ -204,12 +205,6 @@ void tile_change(ENetEvent& event, state state)
                 case type::CHEST:
                 {
                     block.state[2] ^= S_TOGGLE;
-                    if (item.id == 226) // @note Signal Jammer
-                    {
-                        on::ConsoleMessage(event.peer, (block.state[2] & S_TOGGLE) ? 
-                            "Signal jammer enabled. This world is now `4hidden`` from the universe." :
-                            "Signal jammer disabled.  This world is `2visible`` to the universe.");
-                    }
                     break;
                 }
                 case type::RANDOM:
@@ -657,33 +652,40 @@ void tile_change(ENetEvent& event, state state)
                     }
                     case type::SEED:
                     {
+                        auto tree = std::ranges::find(world->trees, state.punch, &::tree::pos);
+                        if (block.state[2] == S_SPLICED) throw std::runtime_error("It would be too dangerous to try to mix three seeds.");
                         for (::item &item : items)
                         {
                             if ((item.splice[0] == state.id && item.splice[1] == block.fg) ||
                                 (item.splice[1] == state.id && item.splice[0] == block.fg) /* allow reverse splice combo */)
                             {
-                                auto splice0 = std::ranges::find(items, item.splice[0], &::item::id);
-                                auto splice1 = std::ranges::find(items, item.splice[1], &::item::id);
+                                const ::item &splice0 = id_to_item(item.splice[0]);
+                                const ::item &splice1 = id_to_item(item.splice[1]);
 
                                 send_varlist(event.peer, {
                                     "OnTalkBubble", 
                                     pPeer->netid, 
                                     std::format("`w{}`` and `w{}`` have been spliced to make a `${} Tree``!", 
-                                        splice0->raw_name, splice1->raw_name, item.raw_name.substr(0, item.raw_name.length()-5/* seed*/)), // @todo this is hardcoded
-                                    0u,
-                                    1u
+                                        splice0.raw_name, splice1.raw_name, item.raw_name.substr(0, item.raw_name.length()-5/* seed*/)), // @todo this is hardcoded
+                                    0u, 1u
                                 });
-                                block.tick = ticks();
+                                tree->tick = ticks();
+                                block.state[2] = S_SPLICED; // @todo handle for multiple flags
+
                                 block.fg = item.id;
                                 update_tile = true;
                                 break;
                             }
                         }
+                        if (block.state[2] != S_SPLICED) throw std::runtime_error(std::format("Hmm, it looks like `w{}`` and `w{}`` can't be spliced.", id_to_item(block.fg).raw_name, id_to_item(state.id).raw_name));
                         break;
                     }
                 }
                 if (update_tile)
+                {
+                    modify_item_inventory(event, ::slot(state.id, -1));
                     send_tile_update(event, std::move(state), block, *world);
+                }
                 return;
             }
             if (item.collision == collision::FULL)
@@ -727,13 +729,14 @@ void tile_change(ENetEvent& event, state state)
                 }
                 case type::PROVIDER:
                 {
-                    block.tick = ticks();
+                    //block.tick = ticks();
                     break;
                 }
                 case type::SEED:
                 {
-                    block.state[2] |= 0x11;
-                    block.tick = ticks();
+                    ransuu ransuu{};
+                    world->trees.emplace_back(ticks(), ransuu[{1, 3}], state.punch);
+                    block.state[2] = 0x11; // @todo
                     break;
                 }
             }

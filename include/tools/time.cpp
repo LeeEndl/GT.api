@@ -2,9 +2,9 @@
 
 #include "time.hpp"
 
-std::time_t ticks()
+u_int ticks()
 {
     struct timespec ts{};
     clock_gettime(CLOCK_MONOTONIC, &ts);
-    return ts.tv_sec;
+    return (u_int)(ts.tv_sec);
 }

@@ -1,5 +1,4 @@
 #include "pch.hpp"
-#include "database.hpp"
 #include "tools/ransuu.hpp"
 #include "tools/time.hpp"
 #include "on/ConsoleMessage.hpp"
@@ -16,14 +15,13 @@ u_char get_type(const ::item &item)
         case type::SEED: return 0x04;
         case type::RANDOM: return 0x08;
         case type::PROVIDER: return 0x09;
-        case type::FISH_TANK_PORT: return 0x10; // @note is 0x00 if not glowing enabled
         case type::DISPLAY_BLOCK: return 0x17;
         case type::VENDING_MACHINE: return 0x18;
     }
     return 0x00;
 }
 
-std::vector<u_char> block::to_blob() const
+::blob block::to_blob() const
 {
     blob blob;
     blob.i16(this->fg);
@@ -32,36 +30,92 @@ std::vector<u_char> block::to_blob() const
     blob.u8(this->state[1]);
     blob.u8(this->state[2]);
     blob.u8(this->state[3]);
-    if (this->fg != 0)
-    if (u_char type = get_type(::item(id_to_item(this->fg))); type > 0x00)
-    {
-        blob.u8(type);
-        if (type == 0x01/*doors, portal*/ || type == 0x02/*sign, mailbox*/)
-        {
-            blob.i16((short)this->label.length());
-            for (char c : this->label) blob.u8((u_char)c);
 
-            if (type == 0x01) blob.u8('\0'); // @note terminator which Growtopia requires.
-            else              blob.i32(0xffffffff); // @todo understand this better...
-        }
-        else if (type == 0x04/*seed*/ || type == 0x09/*provider*/)
-        {
-            blob.i32(this->tick);
-            if (type == 0x04) blob.u8(0x03); // @todo randomize fruit on tree
-        }
-    }
-
-    return blob.data();
+    return blob;
 }
-std::vector<u_char> object::to_blob()
+
+::blob object::to_blob() const
 {
     blob blob;
     blob.i16(this->id);
-    blob.i16(this->count);
     blob.f32(this->pos.x);
     blob.f32(this->pos.y);
+    blob.i16(this->count);
     blob.i32(this->uid);
 
+    return blob;
+}
+
+::blob tree::to_blob(bool seconds) const
+{
+    blob blob;
+    blob.i32((seconds) ? ticks() - this->tick : this->tick);
+    blob.u8(this->fruit);
+
+    return blob;
+}
+
+std::vector<u_char> world::serialize()
+{
+    blob blob;
+    blob.i16(0x00); // @todo my rgt world says: 19 00
+    blob.i32(0x00); // @todo my rgt world says: 40 00 00 00
+    blob.i16(this->name.length());
+    for (char c : this->name) blob.u8(c);
+
+    const int y = this->blocks.size() / 100;
+    const int x = this->blocks.size() / y;
+    blob.i32(x);
+    blob.i32(y);
+    blob.i16(this->blocks.size());
+
+    /*@todo*/
+    blob.i32(0x00);
+    blob.i16(0x00);
+    blob.u8(0x00);
+
+    for (u_short i = 0; const ::block &block : this->blocks)
+    {
+        blob.push_back(block.to_blob());
+
+        if (block.fg != 0) // @note so we can save time
+        if (u_char type = get_type(id_to_item(block.fg)); type > 0x00)
+        {
+            blob.u8(type);
+
+            const ::pos block_pos{i % x, i / x};
+            if (type == 0x01/*doors, portal*/ || type == 0x02/*sign, mailbox*/)
+            {
+                if (block.fg == 6/*Main Door*/) this->spawn = block_pos.by_32(false);
+
+                blob.i16(block.label.length());
+                for (char c : block.label) blob.u8(c);
+
+                if (type == 0x01) blob.u8('\0'); // @note terminator which Growtopia requires.
+                if (type == 0x02) blob.i32(0xffffffff); // @todo understand this better...
+            }
+            else if (type == 0x04/*seed*/)
+            {
+                auto tree = std::ranges::find(this->trees, block_pos, &::tree::pos);
+                if (tree != this->trees.end())
+                {
+                    blob.push_back(tree->to_blob(true));
+                }
+            }
+        }
+        ++i;
+    }
+    /*@todo*/
+    blob.i32(0x00);
+    blob.i32(0x00);
+    blob.i32(0x00);
+
+    blob.i32(this->last_object_uid);
+    blob.i32(this->last_object_uid);
+    for (const ::object &object : this->objects) 
+    {
+        blob.push_back(object.to_blob());
+    }
     return blob.data();
 }
 
@@ -115,7 +169,7 @@ T world::mysql_select(const std::string &column, const std::string &arg)
     MYSQL_BIND param = make_bind_in(this->name);
     mysql_stmt_bind_param(hStmt.pStmt, &param);
 
-    unsigned long length = 0;
+    u_long length = 0;
     MYSQL_BIND result = make_bind_out(value);
     result.length = &length;
     mysql_stmt_bind_result(hStmt.pStmt, &result);
@@ -133,41 +187,42 @@ void world::mysql_select_all()
 {
     this->name = this->mysql_select<std::string>("name");
     {
+        this->trees.clear();
         auto blob = this->mysql_select<std::vector<u_char>>("blocks");
         this->blocks.resize(cord(0, 60));
 
+        const int x = this->blocks.size() / 60;
         const u_char *u8 = blob.data(); // @note i did not have the brain capacity to reinterpret it. t-t
-        int i{};
-        for (::block &block : this->blocks)
+        int pos{};
+        for (u_short i = 0; ::block &block : this->blocks)
         {
-            memcpy(&block.fg, u8 + i, sizeof(short)); i += sizeof(short);
-            memcpy(&block.bg, u8 + i, sizeof(short)); i += sizeof(short);
-            block.state[0] = u8[i++];
-            block.state[1] = u8[i++];
-            block.state[2] = u8[i++];
-            block.state[3] = u8[i++];
-            if (block.fg != 0)
-            if (u_char type = get_type(::item(id_to_item(block.fg))); type > 0x00)
+            memcpy(&block.fg, u8 + pos, sizeof(short)); pos += sizeof(short);
+            memcpy(&block.bg, u8 + pos, sizeof(short)); pos += sizeof(short);
+            block.state[0] = u8[pos++];
+            block.state[1] = u8[pos++];
+            block.state[2] = u8[pos++];
+            block.state[3] = u8[pos++];
+            if (block.fg != 0) // @note so we can save time
+            if (u_char type = get_type(id_to_item(block.fg)); type > 0x00)
             {
-                block.type = u8[i++];
+                const ::pos block_pos{i % x, i / x};
                 if (type == 0x01/*doors, portal*/ || type == 0x02/*sign, mailbox*/)
                 {
                     short len{};
-                    memcpy(&len, u8 + i, sizeof(short)); i += sizeof(short);
+                    memcpy(&len, u8 + pos, sizeof(short)); pos += sizeof(short);
 
                     block.label.resize(len);
-                    for (char &c : block.label)
-                        c = u8[i++];
-                    
-                    if (type == 0x01) i++; // @note '\0'
-                    else i += sizeof(int); // @note 0xffffffff
+                    for (char &c : block.label) c = u8[pos++];
                 }
-                else if (type == 0x04/*seed*/ || type == 0x09/*provider*/)
+                if (type == 0x04/*seed*/)
                 {
-                    memcpy(&block.tick, u8 + i, sizeof(int)); i += sizeof(int);
-                    if (type == 0x04) i++; // @note fruit on tree
+                    auto &tree = this->trees.emplace_back(0, 0, block_pos);
+
+                    memcpy(&tree.tick, u8 + pos, sizeof(int)); pos += sizeof(int);
+                    tree.fruit = u8[pos++];
                 }
             }
+            ++i;
         }
     } // @note delete blob, i
     {
@@ -181,9 +236,9 @@ void world::mysql_select_all()
         for (::object &object : this->objects)
         {
             memcpy(&object.id,    u8 + i, sizeof(u_short)); i += sizeof(u_short);
-            memcpy(&object.count, u8 + i, sizeof(u_short)); i += sizeof(u_short);
             memcpy(&object.pos.x, u8 + i, sizeof(float));   i += sizeof(float);
             memcpy(&object.pos.y, u8 + i, sizeof(float));   i += sizeof(float);
+            memcpy(&object.count, u8 + i, sizeof(u_short)); i += sizeof(u_short);
             memcpy(&object.uid,   u8 + i, sizeof(u_int));   i += sizeof(u_int);
         }
     } // @note delete blob, i
@@ -207,25 +262,44 @@ world::~world()
 {
     this->mysql_update("name", this->name);
     {
-        std::vector<u_char> blob{};
-        for (::block &block : this->blocks)
+        ::blob blob;
+
+        const int x = this->blocks.size() / 60;
+        for (u_short i = 0; const ::block &block : this->blocks)
         {
-            std::vector<u_char> a_blob = block.to_blob();
-            blob.insert(blob.end(), a_blob.begin(), a_blob.end());
+            blob.push_back(block.to_blob());
+
+            if (block.fg != 0) // @note so we can save time
+            if (u_char type = get_type(id_to_item(block.fg)); type > 0x00)
+            {
+                const ::pos block_pos{i % x, i / x};
+                if (type == 0x01/*doors, portal*/ || type == 0x02/*sign, mailbox*/)
+                {
+                    blob.i16(block.label.length());
+                    for (char c : block.label) blob.u8(c);
+                }
+                else if (type == 0x04/*seed*/)
+                {
+                    auto tree = std::ranges::find(this->trees, block_pos, &::tree::pos);
+                    if (tree != this->trees.end())
+                    {
+                        blob.push_back(tree->to_blob());
+                    }
+                }
+            }
+            ++i;
         }
-        this->mysql_update("blocks", blob);
+        this->mysql_update("blocks", blob.data());
     }
     {
-        std::vector<u_char> blob{};
+        ::blob blob{};
 
-        blob.resize(blob.size() + sizeof(u_int));
-        memcpy(blob.data(), &this->last_object_uid, sizeof(u_int)); // @todo add the other 4 bits like real growtopia
+        blob.i32(this->last_object_uid); // @todo add the other 4 bits like real growtopia
         for (::object &object : this->objects)
         {
-            std::vector<u_char> a_blob = object.to_blob();
-            blob.insert(blob.end(), a_blob.begin(), a_blob.end());
+            blob.push_back(object.to_blob());
         }
-        this->mysql_update("objects", blob);
+        this->mysql_update("objects", blob.data());
     }
 }
 
@@ -236,7 +310,7 @@ void send_action(ENetPeer& p, const std::string &action, const std::string &str)
     const std::string &fmt_action = std::format("action|{}\n", action);
     std::vector<u_char> data(sizeof(int) + fmt_action.length() + str.length(), 0x00);
     
-    data[0] = 3; // @note NET_MESSAGE_GAME_MESSAGE
+    data[0] = 03; // @note NET_MESSAGE_GAME_MESSAGE
     {
         const u_char *i8 = reinterpret_cast<const u_char*>(fmt_action.c_str());
         for (std::size_t i = 0ull; i < fmt_action.length(); ++i)
@@ -369,12 +443,11 @@ void send_tile_update(ENetEvent &event, ::state state, ::block &block, ::world &
     short pos = sizeof(::state); // @note start after state bytes (as every packet has)
     data.resize(pos + 99ull); // @todo fix later
 
-    ::block copy = block;
-    copy.tick = ticks() - copy.tick;
-    for (const u_char u8 : copy.to_blob())
+    for (const u_char u8 : block.to_blob().data())
         data[pos++] = u8;
 
     const ::item &item = id_to_item(block.fg);
+    data[pos++] = get_type(item);
     switch (item.type)
     {
         case type::LOCK:
@@ -388,6 +461,16 @@ void send_tile_update(ENetEvent &event, ::state state, ::block &block, ::world &
             *reinterpret_cast<int*>(&data[pos]) = world.owner; pos += sizeof(int);
             *reinterpret_cast<int*>(&data[pos]) = access; pos += sizeof(int);
             /* @todo access list */
+            break;
+        }
+        case type::SEED:
+        {
+            auto tree = std::ranges::find(world.trees, state.punch, &::tree::pos);
+            if (tree != world.trees.end())
+            {
+                for (const u_char u8 : tree->to_blob(true).data())
+                    data[pos++] = u8;
+            }
             break;
         }
         case DISPLAY_BLOCK:
@@ -464,7 +547,7 @@ void generate_world(::world &world)
             else if (i > cord(0, 50) && i < cord(0, 54) /* (above) bedrock level */ && ransuu[{0, 8}] < 3) block.fg = 4; // lava
             else block.fg = (i >= cord(0, 54)) ? 8 : 2;
         }
-        if (i == cord(main_door, 36)) block.fg = 6, block.label = "EXIT"; // @note main door
+        if (i == cord(main_door, 36)) block.fg = 6, block.label = "EXIT", block.state[3] = 1; // @note main door
         else if (i == cord(main_door, 37)) block.fg = 8; // @note bedrock (below main door)
     }
     world.blocks = std::move(blocks);

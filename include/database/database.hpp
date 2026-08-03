@@ -38,10 +38,18 @@ struct blob
     void u8(u_char val) { 
         mData.resize(i + sizeof(u_char));
         mData[i++] = val; 
-     }
-
+    }
+    void push_back(const blob &blob) { 
+        const auto& data = blob.data();
+        
+        mData.insert(mData.end(), data.begin(), data.end());
+        i += blob.size();
+    }
     const std::vector<u_char> &data() const noexcept { 
         return mData; 
+    }
+    const int &size() const noexcept { 
+        return i; 
     }
 
 private:
