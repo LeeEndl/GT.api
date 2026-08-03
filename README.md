@@ -9,9 +9,8 @@
 
 </div>
 
-***
-
-# <img width="190" height="50" src="https://github.com/user-attachments/assets/1385f762-2c56-465a-aa3b-901a431552bb" />
+---
+# <img width="250" height="53" alt="image" src="https://github.com/user-attachments/assets/0a3bee67-ad6c-4e4c-bd0e-aed89d9b5c09" />
 
 ### ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/archive.svg) 1. Requirements
    - [**MSYS2**](https://www.msys2.org/)
@@ -36,7 +35,7 @@
 
 ### ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/archive.svg) 1. Install Dependencies
 
-- enter command associated with your distribution into the terminal to install nessesary tools.
+- Enter command associated with your distribution into the terminal to install nessesary tools.
    <details><summary><img width="22" height="22" src="https://github.com/user-attachments/assets/8359ba6e-a9b2-4500-893f-61eaf40e2478" /> Arch</summary>
    <p>
       
@@ -54,30 +53,24 @@
         
    </p>
    </details> 
-
 ### ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/build.svg) 2. Compile
    - Navigate to the project's root directory in your terminal and run the `make` command:
    
      ```bash
      make -j$(nproc)
      ```
-
 ### ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/debug-alt-small.svg) 3. Run
    - Execute the compiled binary located in the `main` directory:
    
      ```bash
      ./main.out
      ```
-
----
-
-### ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/settings.svg) Local Server Configuration
+# ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/settings.svg) Local Server Configuration
 
 > [!NOTE]
 > To connect to your local server, you must modify your system's **hosts** file.
 > - **Windows**: `C:\Windows\System32\drivers\etc\hosts`
 > - **Linux/macOS**: `/etc/hosts`
->
 > ```
 > 127.0.0.1 www.growtopia1.com
 > 127.0.0.1 www.growtopia2.com
