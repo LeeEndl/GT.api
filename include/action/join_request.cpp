@@ -26,16 +26,11 @@ void action::join_request(ENetEvent& event, const std::string& header, const std
             it = worlds.emplace(worlds.end(), big_name);
             
         ::world &world = *it;
-
         {
-            std::vector<u_char> data = compress_state(::state{
-                .type = 0x04, // @note PACKET_SEND_MAP_DATA
-                .peer_state = peer_state::S_EXTENDED
-            });
-            std::vector<u_char> map_data = world.serialize();
-            data.insert(data.end(), map_data.begin(), map_data.end());
-            
-            enet_peer_send(event.peer, 0, enet_packet_create(data.data(), data.size(), ENET_PACKET_FLAG_RELIABLE));
+            ::blob blob = compress_state(::state{ .type = 0x04, /*PACKET_SEND_MAP_DATA*/ .peer_state = peer_state::S_EXTENDED });
+            blob.push_back(world.serialize());
+
+            enet_peer_send(event.peer, 0, enet_packet_create(blob.data().data(), blob.size(), ENET_PACKET_FLAG_RELIABLE));
         } // @note delete data
         {
             std::string *w_name = std::ranges::find(pPeer->recent_worlds, world.name);

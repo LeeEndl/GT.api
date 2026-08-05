@@ -38,7 +38,6 @@ enum lock_state : u_char
 
 u_char get_type(const ::item &item);
 
-#include "database.hpp" // @todo too much space here.
 
 struct block 
 {
@@ -114,7 +113,7 @@ struct object
 class world 
 {
 public:
-    world(const std::string& name = "");
+    world(const std::string &name = "");/*DEFAULT*/
     ~world();
 
     bool exists(const std::string& name);
@@ -151,13 +150,13 @@ public:
     ::pos spawn{}; // @note position of main door
     ::pos weather{};
 
-    std::vector<u_char> serialize();
+    ::blob serialize();
 };
 extern std::vector<world> worlds;
 
 extern void send_action(ENetPeer &p, const std::string &action, const std::string &str);
 
-extern void send_data(ENetPeer &peer, const std::vector<u_char> &&data);
+extern void send_data(ENetPeer &peer, const ::blob &blob);
 
 extern void state_visuals(ENetPeer &peer, state &&state);
 

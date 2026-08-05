@@ -121,7 +121,7 @@ void send_varlist(ENetPeer *peer, VariantList vlist, int netid, int delay)
         .peer_state = peer_state::S_EXTENDED,
 		.id = delay,
 		.size = size
-    });
+    }).data();
 	u_int pos = data.size(); // @note sizeof(::state)
 	data.resize(pos + size);
 

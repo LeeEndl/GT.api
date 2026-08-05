@@ -14,9 +14,11 @@ enum bgra : u_int
 
 /* id, count */
 struct slot {
-    slot(short _id, short _count) : id(_id), count(_count) {}
-    short id{0};
-    short count{0}; // @note total amount of that item
+    slot(short _id = 0, short _count = 0) : id(_id), count(_count) {}
+    short id{};
+    short count{}; // @note total amount of that item
+
+    ::blob to_blob() const;
 };
 
 /* x, y */
@@ -76,6 +78,10 @@ enum pstate : int
 
 class peer {
 public:
+    ~peer();
+
+    void load(const std::string &growid, const std::string &password);
+
     bool exists(const std::string& growid);
 
     template<typename T>
@@ -111,13 +117,15 @@ public:
     bool facing_left{}; // @note peer is directed towards the left direction
     short pain_hp{ 10 };
 
-    short slot_size{16}; // @note amount of slots this peer has | were talking total slots not itemed slots, to get itemed slots do slot.size()
+    int slot_size{16}; // @note amount of slots this peer has | were talking total slots not itemed slots, to get itemed slots do slot.size()
     std::vector<slot> slots{}; // @note an array of each slot. storing {id, count}
     /*
     * @brief set slot::count to nagative value if you want to remove an amount. 
     * @return the remaining amount if exeeds 200. e.g. emplace(slot{0, 201}) returns 1.
     */
     u_short emplace(::slot slot);
+    ::blob serialize_inventory() const;
+
     std::vector<short> fav{};
 
     signed gems{0};
@@ -186,6 +194,6 @@ public:
 extern state get_state(const std::vector<u_char> &&packet);
 
 /* put it back into it's original form */
-extern std::vector<u_char> compress_state(const state &state);
+extern ::blob compress_state(const state &state);
 
 extern void send_inventory_state(ENetEvent &event);

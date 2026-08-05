@@ -45,11 +45,8 @@ void data_modify(std::vector<u_char> &data, const u_int &pos, const T &value) no
 void decode_items()
 {
     const u_int size = std::filesystem::file_size("items.dat");
-    im_data = compress_state(::state{
-        .type = 0x10, // @note PACKET_SEND_ITEM_DATABASE_DATA
-        .peer_state = peer_state::S_EXTENDED, 
-        .size = size
-    });
+    im_data = compress_state(::state{ .type = 0x10,/*PACKET_SEND_ITEM_DATABASE_DATA*/ .peer_state = peer_state::S_EXTENDED, .size = size }).data();
+    
     u_int pos = im_data.size(); // @note sizeof(::state)
     im_data.resize(pos + size); // @note resize to fit binary data
     

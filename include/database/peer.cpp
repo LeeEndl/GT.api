@@ -18,6 +18,15 @@ bool peer::exists(const std::string& growid)
     return (!mysql_stmt_store_result(hStmt.pStmt) && mysql_stmt_num_rows(hStmt.pStmt) > 0);
 }
 
+::blob slot::to_blob() const
+{
+    ::blob blob;
+    blob.i16(this->id);
+    blob.i16(this->count);
+
+    return blob;
+}
+
 template<typename T>
 void peer::mysql_insert(const std::string& column, const T& value)
 {
@@ -77,6 +86,55 @@ void peer::mysql_select_all()
     this->growid     = this->mysql_select<std::string>("growid");
     this->password   = this->mysql_select<std::string>("password");
     this->created_at = this->mysql_select<std::time_t>("created_at", "UNIX_TIMESTAMP");
+
+    auto blob = this->mysql_select<std::vector<u_char>>("inventory");
+    const u_char *u8 = blob.data();
+
+    int pos{};
+    memcpy(&this->slot_size, u8 + pos, sizeof(int)); pos += sizeof(int);
+    short size{};
+    memcpy(&size, u8 + pos, sizeof(short)); pos += sizeof(short);
+    this->slots.resize(size);
+    for (::slot &slot : this->slots)
+    {
+        memcpy(&slot.id,    u8 + pos, sizeof(short)); pos += sizeof(short);
+        memcpy(&slot.count, u8 + pos, sizeof(short)); pos += sizeof(short);
+    }
+}
+
+::blob peer::serialize_inventory() const
+{
+    ::blob blob{};
+    blob.i32(this->slot_size);
+    blob.i16(this->slots.size());
+    for (const ::slot &slot : this->slots)
+    {
+        blob.push_back(slot.to_blob());
+    }
+    return blob;
+}
+
+void peer::load(const std::string &growid, const std::string &password)
+{
+    if (!this->exists(growid)) 
+    {
+        this->mysql_insert("growid", growid);
+        this->mysql_update<std::string>("password", password);
+
+        this->slots.resize(3ull); // @note since it's pre-determined we don't need do peer::emplace, and less iteration
+        this->slots[0ull] = ::slot{18, 1};   // @note Fist
+        this->slots[1ull] = ::slot{32, 1};   // @note Wrench
+        this->slots[2ull] = ::slot{9640, 1}; // @note My First World Lock
+        this->mysql_update<std::vector<u_char>>("inventory", this->serialize_inventory().data());
+    }
+    this->mysql_select_all();
+}
+
+peer::~peer()
+{
+    this->mysql_update<std::string>("growid", this->growid); // @note mostly for birth certificate. this is unnessesary otherwise
+
+    this->mysql_update<std::vector<u_char>>("inventory", this->serialize_inventory().data());
 }
 
 u_short peer::emplace(::slot slot) 
@@ -192,55 +250,41 @@ state get_state(const std::vector<u_char> &&packet)
     };
 }
 
-std::vector<u_char> compress_state(const state &state) 
+::blob compress_state(const state &state) 
 {
-    std::vector<u_char> data(sizeof(::state), 0x00);
-    int   *i32   = reinterpret_cast<int*>(data.data());
-    u_int *u_i32 = reinterpret_cast<u_int*>(data.data());
-    float *f_i32 = reinterpret_cast<float*>(data.data());
+    ::blob blob{};
+    
+    blob.i32(state.packet_create);
+    blob.i32(state.type);
+    blob.i32(state.netid);
+    blob.i32(state.uid);
+    blob.i32(state.peer_state);
+    blob.f32(state.count);
+    blob.i32(state.id);
+    blob.f32(state.pos.x);
+    blob.f32(state.pos.y);
+    blob.f32(state.speed.x);
+    blob.f32(state.speed.y);
+    blob.f32(state.idk);
+    blob.i32(state.punch.x);
+    blob.i32(state.punch.y);
+    blob.i32(state.size);
 
-    i32[0] = state.packet_create;
-    i32[1] = state.type;
-    i32[2] = state.netid;
-    i32[3] = state.uid;
-    i32[4] = state.peer_state;
-    f_i32[5] = state.count;
-    i32[6] = state.id;
-    f_i32[7] = state.pos.x;
-    f_i32[8] = state.pos.y;
-    f_i32[9] = state.speed.x;
-    f_i32[10] = state.speed.y;
-    f_i32[11] = state.idk;
-    i32[12] = state.punch.x;
-    i32[13] = state.punch.y;
-    u_i32[14] = state.size;
-    return data;
+    return blob;
 }
 
 void send_inventory_state(ENetEvent &event)
 {
     ::peer *pPeer = static_cast<::peer*>(event.peer->data);
 
-    u_int size = 7ull + (pPeer->slots.size() * sizeof(int));
-    std::vector<u_char> data = compress_state(::state{
+    ::blob blob = compress_state(::state{
         .type = 0x09, // @note PACKET_SEND_INVENTORY_STATE
         .netid = pPeer->netid,
-        .peer_state = peer_state::S_EXTENDED,
-        .size = size
+        .peer_state = peer_state::S_EXTENDED
     });
-    data.resize(data.size() + size);
-    data[60] = 0x01; // @note enable flag for big backpack
+    blob.u8(0x01); // @note enable flag for big backpack
 
-    int *i32 = reinterpret_cast<int*>(&data[61ull]);
-    *i32++ = pPeer->slot_size;
+    blob.push_back(pPeer->serialize_inventory());
 
-    short *i16 = reinterpret_cast<short*>(&data[65ull]);
-    *i16++ = pPeer->slots.size();
-    for (const ::slot &slot : pPeer->slots)
-    {
-        *i16++ = slot.id;
-        *i16++ = slot.count;
-    }
-
-	enet_peer_send(event.peer, 0, enet_packet_create(data.data(), data.size(), ENET_PACKET_FLAG_RELIABLE));
+	enet_peer_send(event.peer, 0, enet_packet_create(blob.data().data(), blob.size(), ENET_PACKET_FLAG_RELIABLE));
 }

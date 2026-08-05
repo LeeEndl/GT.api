@@ -1,6 +1,6 @@
 /*
     @copyright gurotopia (c) 2024-05-25
-    @version parent SHA: e8498868156ff100f123155215178d2e20243236 2026-8-3
+    @version parent SHA: 97d517e35fcf40dd8dede0e250d5214b42524577 2026-8-5
 */
 #include "include/pch.hpp"
 #include "include/event_type/__event_type.hpp"
@@ -8,7 +8,6 @@
 #include "include/database/shouhin.hpp" // @note init_shouhin_tachi()
 #include "include/https/https.hpp" // @note https::listener()
 #include "include/https/server_data.hpp" // @note gServer_data
-#include "include/database/database.hpp" // @note mysql_connect()
 #include "include/database/database_config.hpp" // @note load_database_config(), gDatabase_config
 #include "include/automate/holiday.hpp" // @note holiday
 #include <csignal>

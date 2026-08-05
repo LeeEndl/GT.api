@@ -34,14 +34,7 @@ void action::protocol(ENetEvent& event, const std::string& header)
         send_action(*event.peer, "logon_fail", "");
         return; // @note stop processing invalid protocol data
     }
-
-    if (!pPeer->exists(pPeer->growid))
-    {
-        pPeer->mysql_insert("growid", pPeer->growid);
-        
-        pPeer->mysql_update<std::string>("password", pPeer->password);
-    }
-    pPeer->mysql_select_all();
+    pPeer->load(pPeer->growid, pPeer->password); // @todo i want remove this tbh. since we only are fetching user_id which seems a waste.
 
     send_varlist(event.peer, {
         "OnSendToServer", 
@@ -50,6 +43,6 @@ void action::protocol(ENetEvent& event, const std::string& header)
         pPeer->user_id, 
         std::format("{}|0|0", gServer_data.server), 
         1, 
-        pPeer->growid.c_str() // @todo idk why this is 1028 if std::string
-    });
+        pPeer->growid.c_str()
+    }); // @note PACKET_DISCONNECT from client.
 }

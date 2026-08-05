@@ -12,8 +12,8 @@ public:
     hStmt(const std::string &query);
    ~hStmt();
 
-    hStmt           (const hStmt&) = delete;
-    hStmt& operator=(const hStmt&) = delete;
+    hStmt           (const hStmt &) = delete;
+    hStmt &operator=(const hStmt &) = delete;
 
     void bind_and_execute(MYSQL_BIND *param);
 
@@ -23,38 +23,39 @@ public:
 struct blob
 {
     /* @note template vibes */
-    void f32(float val) { 
-        mData.resize(i + sizeof(float));
-        memcpy(mData.data() + i, &val, sizeof(float)); i += sizeof(float); 
+    void f32(float val) {
+        int size = mData.size();
+        mData.resize(size + sizeof(float));
+        memcpy(mData.data() + size, &val, sizeof(float));
     }
     void i32(int val)   { 
-        mData.resize(i + sizeof(int));
-        memcpy(mData.data() + i, &val, sizeof(int));   i += sizeof(int); 
+        int size = mData.size();
+        mData.resize(size + sizeof(int));
+        memcpy(mData.data() + size, &val, sizeof(int));
     }
     void i16(short val) {
-        mData.resize(i + sizeof(short));
-        memcpy(mData.data() + i, &val, sizeof(short)); i += sizeof(short); 
+        int size = mData.size();
+        mData.resize(size + sizeof(short));
+        memcpy(mData.data() + size, &val, sizeof(short));
     }
-    void u8(u_char val) { 
-        mData.resize(i + sizeof(u_char));
-        mData[i++] = val; 
+    void u8(u_char val) {
+        mData.push_back(val);
     }
-    void push_back(const blob &blob) { 
-        const auto& data = blob.data();
+    void push_back(const blob &blob) 
+    { 
+        const auto &data = blob.data();
         
-        mData.insert(mData.end(), data.begin(), data.end());
-        i += blob.size();
+        mData.insert(mData.end(), data.cbegin(), data.cend());
     }
     const std::vector<u_char> &data() const noexcept { 
         return mData; 
     }
-    const int &size() const noexcept { 
-        return i; 
+    size_t size() const noexcept { 
+        return mData.size(); 
     }
 
 private:
     std::vector<u_char> mData;
-    int i{};
 };
 
 extern MYSQL_BIND make_bind_in(const signed &buffer);

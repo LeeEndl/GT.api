@@ -10,12 +10,14 @@ void action::tankIDName(ENetEvent& event, const std::string& header)
     std::vector<std::string> pipes = readch(header, '|');
     if (pipes.empty() || pipes.size() < 41ull) enet_peer_disconnect_later(event.peer, 0);
 
+    /* @todo instead of setting these values we should check if there valid from SQL.*/
     for (std::size_t i = 0; i < pipes.size(); ++i) 
     {
         if      (pipes[i] == "tankIDName")   pPeer->growid = pipes[i+1];
         else if (pipes[i] == "country")      pPeer->country = pipes[i+1];
         else if (pipes[i] == "user")         pPeer->user_id = std::stoi(pipes[i+1]); // @todo validate user_id
     }
+    pPeer->load(pPeer->growid, pPeer->password); // @note the ACTUAL loading. the one in protocol.cpp must be removed for performance...
 
     send_varlist(event.peer, { "OnOverrideGDPRFromServer", 18, 1, 0, 1 });
 

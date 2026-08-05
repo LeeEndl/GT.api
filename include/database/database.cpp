@@ -13,7 +13,8 @@ void create_table_if_not_exist()
                 uid INT AUTO_INCREMENT PRIMARY KEY,
                 growid VARCHAR(18) UNIQUE,
                 password VARCHAR(128),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                inventory BLOB NULL
             );
         )";
         if (mysql_query(db, query.c_str()))

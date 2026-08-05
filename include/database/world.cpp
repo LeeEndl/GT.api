@@ -55,7 +55,7 @@ u_char get_type(const ::item &item)
     return blob;
 }
 
-std::vector<u_char> world::serialize()
+::blob world::serialize()
 {
     blob blob;
     blob.i16(0x00); // @todo my rgt world says: 19 00
@@ -116,7 +116,7 @@ std::vector<u_char> world::serialize()
     {
         blob.push_back(object.to_blob());
     }
-    return blob.data();
+    return blob;
 }
 
 bool world::exists(const std::string& name)
@@ -244,10 +244,8 @@ void world::mysql_select_all()
     } // @note delete blob, i
 }
 
-world::world(const std::string &name) 
+world::world(const std::string &name) : name(name)/*DEFAULT*/
 {
-    this->name = name;
-
     if (this->exists(this->name)) 
     {
         this->mysql_select_all();
@@ -260,7 +258,7 @@ world::world(const std::string &name)
 }
 world::~world()
 {
-    this->mysql_update("name", this->name);
+    this->mysql_update("name", this->name); // @note for address changer
     {
         ::blob blob;
 
@@ -326,9 +324,9 @@ void send_action(ENetPeer& p, const std::string &action, const std::string &str)
     enet_peer_send(&p, 0, enet_packet_create(data.data(), data.size(), ENET_PACKET_FLAG_RELIABLE));
 }
 
-void send_data(ENetPeer &peer, const std::vector<u_char> &&data)
+void send_data(ENetPeer &peer, const ::blob &blob)
 {
-    ENetPacket *packet = enet_packet_create(data.data(), data.size(), ENET_PACKET_FLAG_RELIABLE);
+    ENetPacket *packet = enet_packet_create(blob.data().data(), blob.size(), ENET_PACKET_FLAG_RELIABLE);
     if (packet == nullptr || packet->dataLength < sizeof(::state)) return;
 
     enet_peer_send(&peer, 1, packet);
@@ -438,56 +436,28 @@ void send_tile_update(ENetEvent &event, ::state state, ::block &block, ::world &
 {
     state.type = 05; // @note PACKET_SEND_TILE_UPDATE_DATA
     state.peer_state = peer_state::S_EXTENDED;
-    std::vector<u_char> data = compress_state(state);
+    ::blob blob = compress_state(state);
 
-    short pos = sizeof(::state); // @note start after state bytes (as every packet has)
-    data.resize(pos + 99ull); // @todo fix later
-
-    for (const u_char u8 : block.to_blob().data())
-        data[pos++] = u8;
+    blob.push_back(block.to_blob());
 
     const ::item &item = id_to_item(block.fg);
-    data[pos++] = get_type(item);
+    blob.u8(get_type(id_to_item(block.fg)));
     switch (item.type)
     {
-        case type::LOCK:
-        {
-            if (!is_tile_lock(block.fg)) world.is_public = (block.state[2] & S_PUBLIC); // @note check if world lock has S_PUBLIC flag, i will change this later
-
-            int access = std::ranges::count_if(world.access, std::identity{});
-            data.resize(data.size() + 1ull + 4ull + 4ull + 4ull + (access * 4));
-
-            data[pos++] = world.lock_state;
-            *reinterpret_cast<int*>(&data[pos]) = world.owner; pos += sizeof(int);
-            *reinterpret_cast<int*>(&data[pos]) = access; pos += sizeof(int);
-            /* @todo access list */
-            break;
-        }
         case type::SEED:
         {
             auto tree = std::ranges::find(world.trees, state.punch, &::tree::pos);
             if (tree != world.trees.end())
             {
-                for (const u_char u8 : tree->to_blob(true).data())
-                    data[pos++] = u8;
+                blob.push_back(tree->to_blob(true));
             }
             break;
         }
-        case DISPLAY_BLOCK:
-        {
-            data.resize(pos + 4ull);
-
-            auto display = std::ranges::find(world.displays, state.punch, &::display::pos);
-
-            *reinterpret_cast<int*>(&data[pos]) = display->id; pos += sizeof(int);
-            break;
-        }
     }
-
     ::peer *pPeer = static_cast<::peer*>(event.peer->data);
     peers(pPeer->recent_worlds.back(), PEER_SAME_WORLD, [&](ENetPeer& p) 
     {
-        send_data(p, std::move(data));
+        send_data(p, blob);
     });
 }
 

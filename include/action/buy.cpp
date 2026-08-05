@@ -12,7 +12,7 @@ void action::buy(ENetEvent& event, const std::string& header, const std::string_
 
     ::peer *pPeer = static_cast<::peer*>(event.peer->data);
 
-    u_short No = (pPeer->slot_size - 16) / 10 + 1; // @note number of upgrades | credits: https://growtopia.fandom.com/wiki/Backpack_Upgrade
+    int No = (pPeer->slot_size - 16) / 10 + 1; // @note number of upgrades | credits: https://growtopia.fandom.com/wiki/Backpack_Upgrade
     u_short backpack_cost = (100 * No * No - 200 * No + 200);
 
     auto growtoken = std::ranges::find(pPeer->slots, 1486, &::slot::id);
