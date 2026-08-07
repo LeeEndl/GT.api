@@ -36,17 +36,16 @@ enum lock_state : u_char
     RAINBOWS = 0x80
 };
 
-u_char get_type(const ::item &item);
+char get_type(const ::item &item);
 
 
 struct block 
 {
-    block(short _fg = 0, short _bg = 0, std::string _label = "") : 
-        fg(_fg), bg(_bg), label(_label), state(0, 0, 0, 0) {}
+    block(short _fg = 0, short _bg = 0) : 
+        fg(_fg), bg(_bg), state(0, 0, 0, 0) {}
     
     short fg{0}, bg{0};
     u_char state[4];
-    std::string label{}; // @note sign/door label @todo store in seperate class
 
     u_char hits[2] = {0, 0}; // @note fg, bg
 
@@ -56,13 +55,29 @@ struct block
 
 struct door 
 {
-    door(std::string _dest, std::string _id, std::string _password, ::pos _pos) : 
-        dest(_dest), id(_id), password(_password), pos(_pos) {}
+    door(std::string _label, std::string _dest, std::string _id, ::pos _pos) : 
+        label(_label), dest(_dest), id(_id), pos(_pos) {}
 
+    std::string label{};
     std::string dest{};
     std::string id{};
-    std::string password{};
+
     ::pos pos{};
+
+    ::blob to_blob() const;
+};
+
+struct sign 
+{
+    sign(std::string _label, ::pos _pos) : 
+        label(_label), pos(_pos) {}
+
+    std::string label{};
+    u_int idk{0xffffffff}; // @note unsigned bool. 0xffffffff = false and 1 = true.
+
+    ::pos pos{};
+
+    ::blob to_blob() const;
 };
 
 struct tree
@@ -145,6 +160,7 @@ public:
     std::vector<::door> doors{};
     std::vector<::display> displays{};
     std::vector<::random_block> random_blocks{};
+    std::vector<::sign> signs{};
     std::vector<::tree> trees{};
 
     ::pos spawn{}; // @note position of main door

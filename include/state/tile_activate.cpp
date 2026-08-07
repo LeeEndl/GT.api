@@ -23,17 +23,14 @@ void tile_activate(ENetEvent& event, state state)
         case type::PORTAL:
         {
             bool has_dest{};
-            for (::door &door : world->doors)
+            auto door = std::ranges::find(world->doors, state.punch, &::door::pos);
+            if (door != world->doors.end())
             {
-                if (door.pos == state.punch) 
-                {
-                    has_dest = true;
-                    const std::string_view dest{ door.dest };
-                    
-                    action::quit_to_exit(event, "", true);
-                    action::join_request(event, "", dest);
-                    break;
-                }
+                has_dest = true;
+                const std::string_view dest{ door->dest };
+
+                action::quit_to_exit(event, "", true);
+                action::join_request(event, "", dest);
             }
             if (!has_dest)
             {

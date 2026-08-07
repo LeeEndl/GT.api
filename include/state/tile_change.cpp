@@ -5,7 +5,7 @@
 #include "on/ConsoleMessage.hpp"
 #include "commands/weather.hpp"
 #include "item_activate.hpp"
-#include "tools/ransuu.hpp"
+#include "tools/random.hpp"
 #include "tools/time.hpp"
 #include "tools/create_dialog.hpp"
 #include "action/quit_to_exit.hpp"
@@ -83,7 +83,6 @@ void tile_change(ENetEvent& event, state state)
                 }
                 punch = false;
             }
-            ransuu ransuu;
             u_char apply_damage_value{}; // @note used to change a tile value without using send_tile_update() 
 
             if (pPeer->clothing[hand] == 2952/*Digger's Spade*/)
@@ -93,8 +92,8 @@ void tile_change(ENetEvent& event, state state)
                     if (block.fg != 0) block.hits[0] = 3;
                     else block.hits[1] = 3;
     
-                    int color = (item.id ==  2/*Dirt*/) ? ransuu[{0x02, 0x03}]/* @note idk if this is the correct one, at least by looking at the color it looks like dirt*/ : 
-                                  (item.id == 14/*Cave Background*/) ? ransuu[{0x0e, 0x0f}] : 0x02;
+                    int color = (item.id ==  2/*Dirt*/) ? RandomRange(0x02, 0x03)/* @note idk if this is the correct one, at least by looking at the color it looks like dirt*/ : 
+                                  (item.id == 14/*Cave Background*/) ? RandomRange(0x0e, 0x0f) : 0x02;
 
                     send_particle_effect(event, state.punch.by_32(), {color, 0x61});
                 }
@@ -103,8 +102,8 @@ void tile_change(ENetEvent& event, state state)
             {
                 case 758: // @note Roulette Wheel
                 {
-                    const u_char number = ransuu[{0, 36}];
-                    const char color = (number == 0) ? '2' : (ransuu[{0, 3}] < 2) ? 'b' : '4';
+                    const u_char number = RandomRange(0, 36);
+                    const char color = (number == 0) ? '2' : (RandomRange(0, 3) < 2) ? 'b' : '4';
                     const std::string message = std::format("[`{}{}`` spun the wheel and got `{}{}``!]", pPeer->prefix, pPeer->growid, color, number);
                     peers(pPeer->recent_worlds.back(), PEER_SAME_WORLD, [&event, &pPeer, message](ENetPeer& peer)
                     {
@@ -134,7 +133,7 @@ void tile_change(ENetEvent& event, state state)
                         {
                             case 1008: // @note ATM
                             {
-                                u_char gems = ransuu[{1, 100}]; // @note source: https://growtopia.fandom.com/wiki/ATM_Machine
+                                u_char gems = RandomRange(1, 100); // @note source: https://growtopia.fandom.com/wiki/ATM_Machine
                                 for (short i : {100, 50, 10, 5, 1}/* gem type */)
                                     for (; gems >= i; gems -= i/* downgrade type */)
                                         add_drop(event, {112, i}, state.punch.by_32(), *world);
@@ -143,26 +142,26 @@ void tile_change(ENetEvent& event, state state)
                             }
                             case 872:/*chicken*/ case 866:/*cow*/ case 1632:/*coffee maker*/ case 3888:/*sheep*/
                             {
-                                add_drop(event, ::slot(item.id+2, ransuu[{1, 2}]), state.punch.by_32(), *world);
+                                add_drop(event, ::slot(item.id+2, RandomRange(1, 2)), state.punch.by_32(), *world);
                                 break;
                             }
                             case 5116:/*tea set*/
                             {
-                                add_drop(event, ::slot(item.id-2, ransuu[{1, 2}]), state.punch.by_32(), *world);
+                                add_drop(event, ::slot(item.id-2, RandomRange(1, 2)), state.punch.by_32(), *world);
                                 break;
                             }
                             case 2798:/*well*/
                             {
-                                add_drop(event, ::slot(822/*water bucket*/, ransuu[{1, 2}]), state.punch.by_32(), *world);
+                                add_drop(event, ::slot(822/*water bucket*/, RandomRange(1, 2)), state.punch.by_32(), *world);
                                 break;
                             }
                             case 928:/*science station*/ // @note source: https://growtopia.fandom.com/wiki/Science_Station
                             {
                                 short chemcial = 
-                                    (!ransuu[{0, 16}]) ? chemcial = 918/*P*/ : 
-                                    (!ransuu[{0, 8}])  ? chemcial = 920/*B*/ : 
-                                    (!ransuu[{0, 6}])  ? chemcial = 924/*Y*/ : 
-                                    (!ransuu[{0, 4}])  ? chemcial = 916/*R*/ : chemcial = 914/*G*/;
+                                    (!RandomRange(0, 16)) ? chemcial = 918/*P*/ : 
+                                    (!RandomRange(0, 8))  ? chemcial = 920/*B*/ : 
+                                    (!RandomRange(0, 6))  ? chemcial = 924/*Y*/ : 
+                                    (!RandomRange(0, 4))  ? chemcial = 916/*R*/ : chemcial = 914/*G*/;
                                 add_drop(event, {chemcial, 1}, state.punch.by_32(), *world);
                                 break;
                             }
@@ -181,7 +180,7 @@ void tile_change(ENetEvent& event, state state)
                     if (ticks() - tree->tick >= item.tick) // @todo limit this check.
                     {
                         block.hits[0] = 99;
-                        add_drop(event, ::slot(item.id - 1, ransuu[{2, 12}]), state.punch.by_32(), *world); // @note fruit (from tree)
+                        add_drop(event, ::slot(item.id - 1, RandomRange(2, 12)), state.punch.by_32(), *world); // @note fruit (from tree)
                     }
                     break;
                 }
@@ -210,8 +209,8 @@ void tile_change(ENetEvent& event, state state)
                 case type::RANDOM:
                 {
                     apply_damage_value = 
-                        (item.id == 456/*Dice*/) ? ransuu[{0, 5}] : 
-                        (item.id == 1300/*Roshambo*/) ? ransuu[{1, 3}] : 0;
+                        (item.id == 456/*Dice*/) ? RandomRange(0, 5) : 
+                        (item.id == 1300/*Roshambo*/) ? RandomRange(1, 3) : 0;
 
                     auto random = std::ranges::find(world->random_blocks, state.punch, &::random_block::pos);
                     if (random == world->random_blocks.end())
@@ -229,25 +228,24 @@ void tile_change(ENetEvent& event, state state)
             else return;
             
             /* @todo update these changes with tile_update() */
-            block.label = "";
             block.state[2] = 0x00; // @note reset tile direction
             block.state[3] &= ~S_VANISH; // @note remove paint
             
             if (item.id == 392/*Heartstone*/ || item.id == 3402/*GBC*/ || item.id == 9350/*Super GBC*/)
             {
                 short reward =
-                    (!ransuu[{0, 99}]) ? 1458 : // @note GHC
-                    (!ransuu[{0, 20}]) ? 362 : // @note Angel Wings
-                    (!ransuu[{0, 8}])  ? 366 : // @note Heartbow
-                    (!ransuu[{0, 8}])  ? 1470 : // @note Ruby Necklace
-                    (!ransuu[{0, 20}]) ? 2384 : // @note Love Bug
-                    (!ransuu[{0, 4}])  ? 2396 : // @note Valensign
-                    (!ransuu[{0, 10}]) ? 3388 : // @note Heartbreaker Hammer
-                    (!ransuu[{0, 10}]) ? 2390 : // @note Teeny Angel Wings
-                    (!ransuu[{0, 10}]) ? 3396 : // @note Lovebird Pendant
-                    (!ransuu[{0, 2}])  ? 3404 : // @note Sour Lollipop
-                    (!ransuu[{0, 4}])  ? 3406 : // @note Sweet Lollipop
-                    (!ransuu[{0, 2}])  ? 3408 : // @note Pink Marble Arch
+                    (!RandomRange(0, 99)) ? 1458 : // @note GHC
+                    (!RandomRange(0, 20)) ? 362 : // @note Angel Wings
+                    (!RandomRange(0, 8))  ? 366 : // @note Heartbow
+                    (!RandomRange(0, 8))  ? 1470 : // @note Ruby Necklace
+                    (!RandomRange(0, 20)) ? 2384 : // @note Love Bug
+                    (!RandomRange(0, 4))  ? 2396 : // @note Valensign
+                    (!RandomRange(0, 10)) ? 3388 : // @note Heartbreaker Hammer
+                    (!RandomRange(0, 10)) ? 2390 : // @note Teeny Angel Wings
+                    (!RandomRange(0, 10)) ? 3396 : // @note Lovebird Pendant
+                    (!RandomRange(0, 2))  ? 3404 : // @note Sour Lollipop
+                    (!RandomRange(0, 4))  ? 3406 : // @note Sweet Lollipop
+                    (!RandomRange(0, 2))  ? 3408 : // @note Pink Marble Arch
                     388; // @note Perfume
                     // @todo add all the remaining drops - https://growtopia.fandom.com/wiki/Golden_Booty_Chest
 
@@ -293,16 +291,16 @@ void tile_change(ENetEvent& event, state state)
                         (item.rarity >= 32) ? 9 :
                         (item.rarity >= 24) ? 5 : 1;
 
-                    if (!ransuu[{0, (rarity_to_gem > 1) ? 1 : 4}]) // @note double chances if farmable.
+                    if (!RandomRange(0, (rarity_to_gem > 1) ? 1 : 4)) // @note double chances if farmable.
                     {
                         /* @todo merge gems more effectively */
-                        u_char gems = ransuu[{1, rarity_to_gem}];
+                        u_char gems = RandomRange(1, rarity_to_gem);
                         for (short i : {10, 5, 1}/* gem type */)
                             for (; gems >= i; gems -= i/* downgrade type */)
                                 add_drop(event, {112, i}, state.punch.by_32(), *world);
                     }
-                    if (!ransuu[{0, (rarity_to_gem > 1) ? 2 : 4}]) add_drop(event, ::slot(item.id + 1, 1), state.punch.by_32(), *world); 
-                    else if (!ransuu[{0, (rarity_to_gem > 1) ? 4 : 8}]) add_drop(event, ::slot(item.id, 1), state.punch.by_32(), *world);
+                    if (!RandomRange(0, (rarity_to_gem > 1) ? 2 : 4)) add_drop(event, ::slot(item.id + 1, 1), state.punch.by_32(), *world); 
+                    else if (!RandomRange(0, (rarity_to_gem > 1) ? 4 : 8)) add_drop(event, ::slot(item.id, 1), state.punch.by_32(), *world);
                 } /* ~gem drop */
 
                 pPeer->add_xp(event, std::trunc(1.0f + item.rarity / 5.0f));
@@ -551,9 +549,9 @@ void tile_change(ENetEvent& event, state state)
                 case type::DOOR:
                 case type::PORTAL:
                 {
-                    std::string dest, id{};
+                    std::string label, dest, id{};
                     for (::door& door : world->doors)
-                        if (door.pos == state.punch) dest = door.dest, id = door.id;
+                        if (door.pos == state.punch) { label = door.label, dest = door.dest, id = door.id; break; }
                         
                     send_varlist(event.peer, {
                         "OnDialogRequest",
@@ -571,13 +569,17 @@ void tile_change(ENetEvent& event, state state)
                             "embed_data|tilex|{}\n"
                             "embed_data|tiley|{}\n"
                             "end_dialog|door_edit|Cancel|OK|", 
-                            item.raw_name, item.id, block.label, dest, id, state.punch.x, state.punch.y
+                            item.raw_name, item.id, label, dest, id, state.punch.x, state.punch.y
                         )
                     });
                     break;
                 }
                 case type::SIGN:
                 {
+                    std::string label{};
+                    for (::sign& sign : world->signs)
+                        if (sign.pos == state.punch) { label = sign.label; break; }
+
                     send_varlist(event.peer, {
                         "OnDialogRequest",
                         std::format(
@@ -589,7 +591,7 @@ void tile_change(ENetEvent& event, state state)
                             "embed_data|tilex|{}\n"
                             "embed_data|tiley|{}\n"
                             "end_dialog|sign_edit|Cancel|OK|", 
-                            item.raw_name, item.id, block.label, state.punch.x, state.punch.y
+                            item.raw_name, item.id, label, state.punch.x, state.punch.y
                         )
                     });
                     break;
@@ -734,8 +736,7 @@ void tile_change(ENetEvent& event, state state)
                 }
                 case type::SEED:
                 {
-                    ransuu ransuu{};
-                    world->trees.emplace_back(ticks(), ransuu[{1, 3}], state.punch);
+                    world->trees.emplace_back(ticks(), RandomRange(1, 3), state.punch);
                     block.state[2] = 0x11; // @todo
                     break;
                 }

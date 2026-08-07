@@ -1,24 +1,24 @@
 #include "pch.hpp"
-#include "tools/ransuu.hpp"
+#include "tools/random.hpp"
 #include "tools/time.hpp"
 #include "on/ConsoleMessage.hpp"
 
 #include "world.hpp"
 
-u_char get_type(const ::item &item)
+char get_type(const ::item &item)
 {
     switch (item.type)
     {
-        case type::MAIN_DOOR: case type::DOOR: case type::PORTAL: return 0x01;
-        case type::SIGN: case type::MAILBOX: return 0x02;
-        case type::LOCK: return 0x03;
-        case type::SEED: return 0x04;
-        case type::RANDOM: return 0x08;
-        case type::PROVIDER: return 0x09;
-        case type::DISPLAY_BLOCK: return 0x17;
-        case type::VENDING_MACHINE: return 0x18;
+        case type::MAIN_DOOR: case type::DOOR: case type::PORTAL: return '\x01';
+        case type::SIGN: return '\x02';
+        case type::LOCK: return '\x03';
+        case type::SEED: return '\x04';
+        case type::RANDOM: return '\x08';
+        case type::PROVIDER: return '\x09';
+        case type::DISPLAY_BLOCK: return '\x17';
+        case type::VENDING_MACHINE: return '\x18';
     }
-    return 0x00;
+    return '\x00';
 }
 
 ::blob block::to_blob() const
@@ -42,6 +42,26 @@ u_char get_type(const ::item &item)
     blob.f32(this->pos.y);
     blob.i16(this->count);
     blob.i32(this->uid);
+
+    return blob;
+}
+
+::blob door::to_blob() const
+{
+    blob blob;
+    blob.i16(this->label.length());
+    for (char c : this->label) blob.u8(c);
+    blob.u8('\0');
+
+    return blob;
+}
+
+::blob sign::to_blob() const
+{
+    blob blob;
+    blob.i16(this->label.length());
+    for (char c : this->label) blob.u8(c);
+    blob.u32(this->idk);
 
     return blob;
 }
@@ -79,22 +99,30 @@ u_char get_type(const ::item &item)
         blob.push_back(block.to_blob());
 
         if (block.fg != 0) // @note so we can save time
-        if (u_char type = get_type(id_to_item(block.fg)); type > 0x00)
+        if (char type = get_type(id_to_item(block.fg)); type > '\x00')
         {
             blob.u8(type);
 
             const ::pos block_pos{i % x, i / x};
-            if (type == 0x01/*doors, portal*/ || type == 0x02/*sign, mailbox*/)
+            if (type == '\x01'/*doors, portal*/)
             {
                 if (block.fg == 6/*Main Door*/) this->spawn = block_pos.by_32(false);
 
-                blob.i16(block.label.length());
-                for (char c : block.label) blob.u8(c);
-
-                if (type == 0x01) blob.u8('\0'); // @note terminator which Growtopia requires.
-                if (type == 0x02) blob.i32(0xffffffff); // @todo understand this better...
+                auto door = std::ranges::find(this->doors, block_pos, &::door::pos);
+                if (door != this->doors.end())
+                {
+                    blob.push_back(door->to_blob());
+                }
             }
-            else if (type == 0x04/*seed*/)
+            else if (type == '\x02'/*sign*/)
+            {
+                auto sign = std::ranges::find(this->signs, block_pos, &::sign::pos);
+                if (sign != this->signs.end())
+                {
+                    blob.push_back(sign->to_blob());
+                }
+            }
+            else if (type == '\x04'/*seed*/)
             {
                 auto tree = std::ranges::find(this->trees, block_pos, &::tree::pos);
                 if (tree != this->trees.end())
@@ -203,20 +231,34 @@ void world::mysql_select_all()
             block.state[2] = u8[pos++];
             block.state[3] = u8[pos++];
             if (block.fg != 0) // @note so we can save time
-            if (u_char type = get_type(id_to_item(block.fg)); type > 0x00)
+            if (char type = get_type(id_to_item(block.fg)); type > '\x00')
             {
                 const ::pos block_pos{i % x, i / x};
-                if (type == 0x01/*doors, portal*/ || type == 0x02/*sign, mailbox*/)
+                if (type == '\x01'/*doors, portal*/)
                 {
                     short len{};
                     memcpy(&len, u8 + pos, sizeof(short)); pos += sizeof(short);
 
-                    block.label.resize(len);
-                    for (char &c : block.label) c = u8[pos++];
+                    ::door &door = this->doors.emplace_back("","","", block_pos);
+
+                    door.label.resize(len);
+                    for (char &c : door.label) c = u8[pos++];
+                    pos++;// \0
                 }
-                if (type == 0x04/*seed*/)
+                else if (type == '\x02'/*sign*/)
                 {
-                    auto &tree = this->trees.emplace_back(0, 0, block_pos);
+                    short len{};
+                    memcpy(&len, u8 + pos, sizeof(short)); pos += sizeof(short);
+
+                    ::sign &sign = this->signs.emplace_back("", block_pos);
+
+                    sign.label.resize(len);
+                    for (char &c : sign.label) c = u8[pos++];
+                    memcpy(&sign.idk, u8 + pos, sizeof(u_int)); pos += sizeof(u_int);
+                }
+                else if (type == '\x04'/*seed*/)
+                {
+                    ::tree &tree = this->trees.emplace_back(0, 0, block_pos);
 
                     memcpy(&tree.tick, u8 + pos, sizeof(int)); pos += sizeof(int);
                     tree.fruit = u8[pos++];
@@ -271,12 +313,23 @@ world::~world()
             if (u_char type = get_type(id_to_item(block.fg)); type > 0x00)
             {
                 const ::pos block_pos{i % x, i / x};
-                if (type == 0x01/*doors, portal*/ || type == 0x02/*sign, mailbox*/)
+                if (type == '\x01'/*doors, portal*/)
                 {
-                    blob.i16(block.label.length());
-                    for (char c : block.label) blob.u8(c);
+                    auto door = std::ranges::find(this->doors, block_pos, &::door::pos);
+                    if (door != this->doors.end())
+                    {
+                        blob.push_back(door->to_blob());
+                    }
                 }
-                else if (type == 0x04/*seed*/)
+                else if (type == '\x02'/*sign*/)
+                {
+                    auto sign = std::ranges::find(this->signs, block_pos, &::sign::pos);
+                    if (sign != this->signs.end())
+                    {
+                        blob.push_back(sign->to_blob());
+                    }
+                }
+                else if (type == '\x04'/*seed*/)
                 {
                     auto tree = std::ranges::find(this->trees, block_pos, &::tree::pos);
                     if (tree != this->trees.end())
@@ -425,10 +478,9 @@ int add_object(ENetEvent& event, ::slot slot, const ::pos& pos, ::world &world)
 
 void add_drop(ENetEvent &event, ::slot im, ::pos pos, ::world &world) // @todo
 {
-    ransuu ransuu;
     add_object(event, im, ::pos{
-        pos.x + ransuu[{0, 16}],
-        pos.y + ransuu[{0, 16}]
+        pos.x + RandomRange(0, 16),
+        pos.y + RandomRange(0, 16)
     }, world);
 }
 
@@ -444,6 +496,24 @@ void send_tile_update(ENetEvent &event, ::state state, ::block &block, ::world &
     blob.u8(get_type(id_to_item(block.fg)));
     switch (item.type)
     {
+        case type::DOOR:
+        {
+            auto door = std::ranges::find(world.doors, state.punch, &::door::pos);
+            if (door != world.doors.end())
+            {
+                blob.push_back(door->to_blob());
+            }
+            break;
+        }
+        case type::SIGN:
+        {
+            auto sign = std::ranges::find(world.signs, state.punch, &::sign::pos);
+            if (sign != world.signs.end())
+            {
+                blob.push_back(sign->to_blob());
+            }
+            break;
+        }
         case type::SEED:
         {
             auto tree = std::ranges::find(world.trees, state.punch, &::tree::pos);
@@ -492,9 +562,8 @@ void remove_fire(ENetEvent &event, state state, ::block &block, ::world &world)
 
 void fireworks(ENetEvent &event, const ::pos &pos)
 {
-    ransuu ransuu;
-    int type  [3]{ ransuu[{0x25, 0x28}], ransuu[{0x25, 0x28}], ransuu[{0x25, 0x28}] };
-    int offset[3]{ ransuu[{260, 2200}], ransuu[{260, 2200}], ransuu[{260, 2200}] };
+    int type  [3]{ RandomRange(0x25, 0x28), RandomRange(0x25, 0x28), RandomRange(0x25, 0x28) };
+    int offset[3]{ RandomRange(260, 2200), RandomRange(260, 2200), RandomRange(260, 2200) };
 
     send_particle_effect(event, pos, {0xb3, type[0]}, 0xc8*0, offset[0]);
     send_particle_effect(event, pos, {0xbe, type[1]}, 0xc8*1, offset[1]);
@@ -503,21 +572,25 @@ void fireworks(ENetEvent &event, const ::pos &pos)
 
 void generate_world(::world &world)
 {
-    ransuu ransuu;
-    u_short main_door = ransuu[{2, cord(0, 60) / 100 - 4}];
+    u_short main_door = RandomRange(2, cord(0, 60) / 100 - 4);
     std::vector<::block> blocks(cord(0, 60), ::block{0, 0});
+    const int x = blocks.size() / 60;
     
-    for (std::size_t i = 0ull; i < blocks.size(); ++i)
+    for (int i = 0ull; i < blocks.size(); ++i)
     {
         ::block &block = blocks[i];
         if (i >= cord(0, 37))
         {
             block.bg = 14; // @note cave background
-            if (i >= cord(0, 38) && i < cord(0, 50) /* (above) lava level */ && ransuu[{0, 38}] <= 1) block.fg = 10; // rock
-            else if (i > cord(0, 50) && i < cord(0, 54) /* (above) bedrock level */ && ransuu[{0, 8}] < 3) block.fg = 4; // lava
+            if (i >= cord(0, 38) && i < cord(0, 50) /* (above) lava level */ && RandomRange(0, 38) <= 1) block.fg = 10; // rock
+            else if (i > cord(0, 50) && i < cord(0, 54) /* (above) bedrock level */ && RandomRange(0, 8) < 3) block.fg = 4; // lava
             else block.fg = (i >= cord(0, 54)) ? 8 : 2;
         }
-        if (i == cord(main_door, 36)) block.fg = 6, block.label = "EXIT", block.state[3] = 1; // @note main door
+        if (i == cord(main_door, 36))
+        {
+            block.fg = 6;
+            world.doors.emplace_back(::door("EXIT","","", ::pos(i % x, i / x))); // @todo seems a bit hardcoded.
+        }
         else if (i == cord(main_door, 37)) block.fg = 8; // @note bedrock (below main door)
     }
     world.blocks = std::move(blocks);
@@ -546,9 +619,7 @@ bool door_mover(::world &world, const ::pos &pos)
 
 void blast::thermonuclear(::world &world, const std::string &name)
 {
-    ransuu ransuu;
-
-    const u_short main_door = ransuu[{2, cord(0, 60) / 100 - 4}];
+    const u_short main_door = RandomRange(2, cord(0, 60) / 100 - 4);
     std::vector<::block> blocks(cord(0, 60), ::block{0, 0});
     for (std::size_t i = 0ull; i < blocks.size(); ++i)
     {

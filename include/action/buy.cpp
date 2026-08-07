@@ -2,7 +2,6 @@
 #include "store.hpp"
 #include "on/SetBux.hpp"
 #include "database/shouhin.hpp"
-#include "tools/ransuu.hpp"
 #include "buy.hpp"
 
 

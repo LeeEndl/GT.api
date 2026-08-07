@@ -33,6 +33,11 @@ struct blob
         mData.resize(size + sizeof(int));
         memcpy(mData.data() + size, &val, sizeof(int));
     }
+    void u32(u_int val)   { 
+        int size = mData.size();
+        mData.resize(size + sizeof(u_int));
+        memcpy(mData.data() + size, &val, sizeof(u_int));
+    }
     void i16(short val) {
         int size = mData.size();
         mData.resize(size + sizeof(short));

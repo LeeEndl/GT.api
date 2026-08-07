@@ -15,11 +15,37 @@ void gateway_edit(ENetEvent& event, const ::hPipe &hPipe)
     block &block = world->blocks[cord(tilex, tiley)];
 
     if (hPipe["dialog_name"] == "sign_edit") 
-        block.label = hPipe["sign_text"];
-    
-    if (hPipe["dialog_name"] == "door_edit") 
-        block.label = hPipe["door_name"];
-        
+    {
+        auto sign = std::ranges::find(world->signs, ::pos{tilex, tiley}, &::sign::pos);
+        if (sign != world->signs.end()) 
+        {
+            sign->label = hPipe["sign_text"];
+        }
+        else {
+            world->signs.emplace_back(::sign(hPipe["sign_text"], ::pos{tilex, tiley}));
+        }
+    }
+    else if (hPipe["dialog_name"] == "door_edit") 
+    {
+        auto door = std::ranges::find(world->doors, ::pos{tilex, tiley}, &::door::pos);
+        if (door != world->doors.end())
+        {
+            door->label = hPipe["door_name"];
+            if (!hPipe["dialog_name"].empty())
+            {
+                door->dest = hPipe["door_target"];
+                door->id = hPipe["door_id"];
+            }
+        }
+        else {
+            world->doors.emplace_back(::door(
+                hPipe["door_name"],
+                hPipe["door_target"],
+                hPipe["door_id"],
+                { tilex, tiley }
+            ));
+        }
+    }
     else if (hPipe["dialog_name"] == "gateway_edit") 
     {
         block.state[2] &= ~(S_PUBLIC | S_LOCKED);
@@ -30,23 +56,4 @@ void gateway_edit(ENetEvent& event, const ::hPipe &hPipe)
         .id = block.fg,
         .punch = { tilex, tiley }
     }, block, *world);
-
-    if (!hPipe["dialog_name"].empty())
-    {
-        for (::door &door : world->doors)
-        {
-            if (door.pos == ::pos{tilex, tiley}) 
-            {
-                door.dest = hPipe["door_target"];
-                door.id = hPipe["door_id"];
-                return;
-            }
-        }
-        world->doors.emplace_back(::door(
-            hPipe["door_target"],
-            hPipe["door_id"],
-            "", // @todo add password door
-            { tilex, tiley }
-        ));
-    }
 }
