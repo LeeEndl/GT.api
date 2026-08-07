@@ -696,6 +696,16 @@ void tile_change(ENetEvent& event, state state)
             }
             switch (item.type)
             {
+                case type::DOOR:
+                {
+                    world->doors.emplace_back("","","", state.punch);
+                    break;
+                }
+                case type::SIGN:
+                {
+                    world->signs.emplace_back("", state.punch);
+                    break;
+                }
                 case type::LOCK:
                 {
                     if (is_tile_lock(item.id)) break; // @note seperate area for 'range_lock'
@@ -724,6 +734,12 @@ void tile_change(ENetEvent& event, state state)
                     else throw std::runtime_error("Only one `$World Lock`` can be placed in a world, you'd have to remove the other one first.");
                     break;
                 }
+                case type::SEED:
+                {
+                    world->trees.emplace_back(ticks(), RandomRange(1, 3), state.punch);
+                    block.state[2] = 0x11; // @todo
+                    break;
+                }
                 case type::ENTRANCE:
                 {
                     block.state[2] |= S_PUBLIC;
@@ -732,12 +748,6 @@ void tile_change(ENetEvent& event, state state)
                 case type::PROVIDER:
                 {
                     //block.tick = ticks();
-                    break;
-                }
-                case type::SEED:
-                {
-                    world->trees.emplace_back(ticks(), RandomRange(1, 3), state.punch);
-                    block.state[2] = 0x11; // @todo
                     break;
                 }
             }

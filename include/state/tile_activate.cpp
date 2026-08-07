@@ -22,28 +22,25 @@ void tile_activate(ENetEvent& event, state state)
         case type::DOOR: // @todo add door-to-door with door::id
         case type::PORTAL:
         {
-            bool has_dest{};
             auto door = std::ranges::find(world->doors, state.punch, &::door::pos);
-            if (door != world->doors.end())
+            if (door != world->doors.end() && !door->dest.empty())
             {
-                has_dest = true;
                 const std::string_view dest{ door->dest };
 
                 action::quit_to_exit(event, "", true);
                 action::join_request(event, "", dest);
             }
-            if (!has_dest)
-            {
-                send_varlist(event.peer, {
+            else {
+                send_varlist(event.peer, ::VariantList{
                     "OnSetPos", 
                     CL_Vec2f{pPeer->rest_pos.x, pPeer->rest_pos.y}
                 }, pPeer->netid);
-                send_varlist(event.peer, {
+                send_varlist(event.peer, ::VariantList{
                     "OnZoomCamera",
-                    CL_Vec2f{10000.0f, 0}, // @todo
+                    10000.0f,
                     1000u
                 });
-                send_varlist(event.peer, {
+                send_varlist(event.peer, ::VariantList{
                     "OnSetFreezeState", 
                     0u
                 }, pPeer->netid);
