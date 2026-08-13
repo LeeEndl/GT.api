@@ -169,7 +169,7 @@ template void world::mysql_insert<signed>(const std::string&, const signed&);
 template void world::mysql_insert<unsigned>(const std::string&, const unsigned&);
 template void world::mysql_insert<float>(const std::string&, const float&);
 template void world::mysql_insert<std::string>(const std::string&, const std::string&);
-template void world::mysql_insert<std::vector<u_char>>(const std::string&, const std::vector<u_char>&);
+template void world::mysql_insert<::blob>(const std::string&, const ::blob&);
 
 template<typename T>
 void world::mysql_update(const std::string& column, const T& value)
@@ -186,7 +186,7 @@ template void world::mysql_update<signed>(const std::string&, const signed&);
 template void world::mysql_update<unsigned>(const std::string&, const unsigned&);
 template void world::mysql_update<float>(const std::string&, const float&);
 template void world::mysql_update<std::string>(const std::string&, const std::string&);
-template void world::mysql_update<std::vector<u_char>>(const std::string&, const std::vector<u_char>&);
+template void world::mysql_update<::blob>(const std::string&, const ::blob&);
 
 template<typename T>
 T world::mysql_select(const std::string &column, const std::string &arg)
@@ -205,8 +205,11 @@ T world::mysql_select(const std::string &column, const std::string &arg)
     mysql_stmt_execute(hStmt.pStmt);
     mysql_stmt_fetch(hStmt.pStmt);
     
-    if constexpr (std::is_same_v<T, std::string> || std::is_same_v<T, std::vector<u_char>>)
+    if constexpr (std::is_same_v<T, std::string>)
         value.resize(length);
+    else 
+    if constexpr (std::is_same_v<T, ::blob>)
+        value.data().resize(length);
 
     return value;
 }
@@ -216,52 +219,44 @@ void world::mysql_select_all()
     this->name = this->mysql_select<std::string>("name");
     {
         this->trees.clear();
-        auto blob = this->mysql_select<std::vector<u_char>>("blocks");
+        ::blob blob = this->mysql_select<::blob>("blocks");
         this->blocks.resize(cord(0, 60));
 
         const int x = this->blocks.size() / 60;
-        const u_char *u8 = blob.data(); // @note i did not have the brain capacity to reinterpret it. t-t
         int pos{};
         for (u_short i = 0; ::block &block : this->blocks)
         {
-            memcpy(&block.fg, u8 + pos, sizeof(short)); pos += sizeof(short);
-            memcpy(&block.bg, u8 + pos, sizeof(short)); pos += sizeof(short);
-            block.state[0] = u8[pos++];
-            block.state[1] = u8[pos++];
-            block.state[2] = u8[pos++];
-            block.state[3] = u8[pos++];
+            blob.read_i16(block.fg, pos);
+            blob.read_i16(block.bg, pos);
+            blob.read_u8(block.state[0], pos);
+            blob.read_u8(block.state[1], pos);
+            blob.read_u8(block.state[2], pos);
+            blob.read_u8(block.state[3], pos);
+
             if (block.fg != 0) // @note so we can save time
             if (char type = get_type(id_to_item(block.fg)); type > '\x00')
             {
                 const ::pos block_pos{i % x, i / x};
                 if (type == '\x01'/*doors, portal*/)
                 {
-                    short len{};
-                    memcpy(&len, u8 + pos, sizeof(short)); pos += sizeof(short);
-
                     ::door &door = this->doors.emplace_back("","","", block_pos);
 
-                    door.label.resize(len);
-                    for (char &c : door.label) c = u8[pos++];
-                    pos++;// \0
+                    blob.read_string(door.label, pos);
+                    pos++;// @note \0
                 }
                 else if (type == '\x02'/*sign*/)
                 {
-                    short len{};
-                    memcpy(&len, u8 + pos, sizeof(short)); pos += sizeof(short);
-
                     ::sign &sign = this->signs.emplace_back("", block_pos);
 
-                    sign.label.resize(len);
-                    for (char &c : sign.label) c = u8[pos++];
-                    memcpy(&sign.idk, u8 + pos, sizeof(u_int)); pos += sizeof(u_int);
+                    blob.read_string(sign.label, pos);
+                    blob.read_u32(sign.idk, pos);
                 }
                 else if (type == '\x04'/*seed*/)
                 {
                     ::tree &tree = this->trees.emplace_back(0, 0, block_pos);
 
-                    memcpy(&tree.tick, u8 + pos, sizeof(int)); pos += sizeof(int);
-                    tree.fruit = u8[pos++];
+                    blob.read_u32(tree.tick, pos);
+                    blob.read_u8(tree.fruit, pos);
                 }
             }
             ++i;
@@ -340,7 +335,7 @@ world::~world()
             }
             ++i;
         }
-        this->mysql_update("blocks", blob.data());
+        this->mysql_update("blocks", blob);
     }
     {
         ::blob blob{};

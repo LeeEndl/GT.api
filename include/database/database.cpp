@@ -118,6 +118,10 @@ MYSQL_BIND make_bind_in(const std::vector<u_char> &buffer)
 {
     return { .buffer = (void*)buffer.data(), .buffer_length = (u_long)buffer.size(), .buffer_type = MYSQL_TYPE_BLOB };
 }
+MYSQL_BIND make_bind_in(const ::blob &buffer)
+{
+    return { .buffer = (void*)buffer.data().data(), .buffer_length = (u_long)buffer.size(), .buffer_type = MYSQL_TYPE_BLOB };
+}
 
 MYSQL_BIND make_bind_out(signed &buffer)
 {
@@ -150,4 +154,10 @@ MYSQL_BIND make_bind_out(std::vector<u_char> &buffer)
     buffer.resize(cord(0, 60)* sizeof(::block));
 
     return { .buffer = buffer.data(), .buffer_length = (u_long)buffer.size(), .buffer_type = MYSQL_TYPE_BLOB };
+}
+MYSQL_BIND make_bind_out(::blob &buffer)
+{
+    buffer.data().resize(cord(0, 60)* sizeof(::block));
+
+    return { .buffer = buffer.data().data(), .buffer_length = (u_long)buffer.size(), .buffer_type = MYSQL_TYPE_BLOB };
 }

@@ -43,6 +43,35 @@ struct blob
         mData.resize(size + sizeof(short));
         memcpy(mData.data() + size, &val, sizeof(short));
     }
+    void read_string(std::string &val, int &pos)
+    {
+        short len{};
+        read_i16(len, pos);
+
+        val.resize(len);
+        memcpy(val.data(), mData.data() + pos, len);
+        pos += len;
+    }
+    void read_u32(u_int &val, int &pos)
+    {
+        memcpy(&val, mData.data()+pos, sizeof(u_int));
+        pos += sizeof(u_int);
+    }
+    void read_i16(short &val, int &pos)
+    {
+        memcpy(&val, mData.data()+pos, sizeof(short));
+        pos += sizeof(short);
+    }
+    void read_i8(char &val, int &pos)
+    {
+        memcpy(&val, mData.data()+pos, sizeof(u_char));
+        pos += sizeof(u_char);
+    }
+    void read_u8(u_char &val, int &pos)
+    {
+        memcpy(&val, mData.data()+pos, sizeof(u_char));
+        pos += sizeof(u_char);
+    }
     void u8(u_char val) {
         mData.push_back(val);
     }
@@ -54,6 +83,9 @@ struct blob
     }
     const std::vector<u_char> &data() const noexcept { 
         return mData; 
+    }
+    std::vector<u_char> &data() noexcept {
+        return mData;
     }
     size_t size() const noexcept { 
         return mData.size(); 
@@ -70,6 +102,7 @@ extern MYSQL_BIND make_bind_in(const long long &buffer);
 extern MYSQL_BIND make_bind_in(const float &buffer);
 extern MYSQL_BIND make_bind_in(const std::string &buffer);
 extern MYSQL_BIND make_bind_in(const std::vector<u_char> &buffer);
+extern MYSQL_BIND make_bind_in(const ::blob &buffer);
 
 extern MYSQL_BIND make_bind_out(signed &buffer);
 extern MYSQL_BIND make_bind_out(unsigned &buffer);
@@ -78,3 +111,4 @@ extern MYSQL_BIND make_bind_out(long long &buffer);
 extern MYSQL_BIND make_bind_out(float &buffer);
 extern MYSQL_BIND make_bind_out(std::string &buffer);
 extern MYSQL_BIND make_bind_out(std::vector<u_char> &buffer);
+extern MYSQL_BIND make_bind_out(::blob &buffer);
