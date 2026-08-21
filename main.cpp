@@ -1,6 +1,6 @@
 /*
     @copyright gurotopia (c) 2024-05-25
-    @version parent SHA: 3ab2e99df1ad2026c154f3c0d0843a7824b652b4 2026-8-13
+    @version parent SHA: 74603b427823dea5ebe0bc35aa1efdd0311ae80e 2026-8-16
 */
 #include "include/pch.hpp"
 #include "include/event_type/__event_type.hpp"
@@ -20,25 +20,24 @@ static void signal_handler(int signal) { gSignal = signal; }
 
 int main()
 {
-    /* !! please press Ctrl + C when restarting or stopping server !! */
     std::signal(SIGINT, signal_handler);
 #ifdef SIGHUP // @note unix
     std::signal(SIGHUP, signal_handler); // @note PuTTY, SSH problems
 #endif
 
     /* libary version checker */
-    std::printf("ZTzTopia/enet %d.%d.%d\n", ENET_VERSION_MAJOR, ENET_VERSION_MINOR, ENET_VERSION_PATCH);
     std::printf("openssl/openssl %s\n", OpenSSL_version(OPENSSL_VERSION_STRING));
 
+    mysql_library_init(0, NULL, NULL);
     enet_initialize();
     {
-        gServer_data = init_server_data();
+        gServer_data.init(); // @note ./server_data.php
         ENetAddress address{
             .type = ENET_ADDRESS_TYPE_IPV4, 
             .port = gServer_data.port
         };
 
-        host = enet_host_create (ENET_ADDRESS_TYPE_IPV4, &address, 50ull/* max peer count */, 2ull, 0, 0);
+        host = enet_host_create (ENET_ADDRESS_TYPE_IPV4, &address, 50ull/* max peer count */, 2ull, 0u, 0u);
         std::thread(&https::listener).detach();
     } // @note delete address
     host->usingNewPacketForServer = true;
@@ -58,6 +57,9 @@ int main()
                 i->second(event);
 
     safe_disconnect_peers(gSignal);
-    mysql_close(db);
-    return 0;
+    mysql_close(db); // @note deletes db (MYSQL* allocation)
+    mysql_library_end();
+
+    puts("killed gurotopia! [EXIT_SUCCESS]");
+    return EXIT_SUCCESS;
 }

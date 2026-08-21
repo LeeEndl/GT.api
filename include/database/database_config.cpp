@@ -19,7 +19,7 @@
                     "host|{}\n"
                     "user|{}\n"
                     "password|{}\n",
-                    db_config.host, db_config.user, db_config.password
+                    db_config.host, db_config.user, db_config.passwd
                 );
         } // @note close write
         else
@@ -33,7 +33,7 @@
 
             db_config.host     = pipes[1];
             db_config.user     = pipes[3];
-            db_config.password = pipes[5];
+            db_config.passwd = pipes[5];
         } // @note delete pipes
     } // @note close file
     return db_config;

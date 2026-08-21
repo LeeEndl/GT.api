@@ -3,7 +3,6 @@
 #include "server_data.hpp"
 
 #include <openssl/err.h>
-#include <csignal>
 
 #ifdef _WIN32
     #include <winsock2.h>

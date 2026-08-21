@@ -15,7 +15,12 @@ public:
     hStmt           (const hStmt &) = delete;
     hStmt &operator=(const hStmt &) = delete;
 
-    void bind_and_execute(MYSQL_BIND *param);
+    void bind_param(MYSQL_BIND *param);
+    void execute();
+    void fetch();
+
+    /* https://dev.mysql.com/doc/mysql-errors/8.4/en/client-error-reference.html */
+    void log_err() { std::fprintf(stderr, "[MariaDB] %s\n", mysql_error(db)); }
 
     MYSQL_STMT *pStmt;
 };
@@ -87,8 +92,12 @@ struct blob
     std::vector<u_char> &data() noexcept {
         return mData;
     }
-    size_t size() const noexcept { 
+    [[nodiscard]] constexpr std::size_t size() const noexcept { 
         return mData.size(); 
+    }
+    constexpr void resize(std::size_t __new_size)
+    {
+        mData.resize(__new_size);
     }
 
 private:

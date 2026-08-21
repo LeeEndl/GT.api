@@ -10,7 +10,7 @@ public:
     std::string maint{"Server under maintenance. Please try again later."};
     std::string loginurl{"login-gurotopia.vercel.app"};
     std::string meta{"gurotopia"};
+
+    void init();
 };
 extern ::server_data gServer_data;
-
-extern ::server_data init_server_data();

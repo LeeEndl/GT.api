@@ -5,10 +5,10 @@ class database_config
 public:
     std::string host{"127.0.0.1"};
     std::string user{"root"};
-    std::string password{""};
+    std::string passwd{NULL};
 };
 
-extern ::database_config gDb_config; // @note db for short, "database" looked long and ugly.
+extern ::database_config gDb_config; // @note db for short, "database" looked long and ugly. (still looks ugly LMAO)
 
 /*
     @return database_config read from 'database.cfg'.

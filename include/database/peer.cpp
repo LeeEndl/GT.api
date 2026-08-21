@@ -8,12 +8,13 @@
 
 #include "peer.hpp"
 
-bool peer::exists(const std::string& growid)
+bool peer::exists(const std::string &growid)
 {
     ::hStmt hStmt{ "SELECT 1 FROM peer WHERE growid = ? LIMIT 1" };
 
-    MYSQL_BIND param = make_bind_in(growid);
-    hStmt.bind_and_execute(&param);
+    MYSQL_BIND param = make_bind_in(growid); // WHERE
+    hStmt.bind_param(&param);
+    hStmt.execute();
 
     return (!mysql_stmt_store_result(hStmt.pStmt) && mysql_stmt_num_rows(hStmt.pStmt) > 0);
 }
@@ -28,12 +29,13 @@ bool peer::exists(const std::string& growid)
 }
 
 template<typename T>
-void peer::mysql_insert(const std::string& column, const T& value)
+void peer::mysql_insert(const std::string &column, const T &value)
 {
     ::hStmt hStmt{ std::format("INSERT INTO peer ({}) VALUES (?)", column).c_str() };
 
-    MYSQL_BIND param = make_bind_in(value);
-    hStmt.bind_and_execute(&param);
+    MYSQL_BIND param = make_bind_in(value); // VALUES
+    hStmt.bind_param(&param);
+    hStmt.execute();
 }
 template void peer::mysql_insert<signed>(const std::string&, const signed&);
 template void peer::mysql_insert<unsigned>(const std::string&, const unsigned&);
@@ -41,7 +43,7 @@ template void peer::mysql_insert<float>(const std::string&, const float&);
 template void peer::mysql_insert<std::string>(const std::string&, const std::string&);
 
 template<typename T>
-void peer::mysql_update(const std::string& column, const T& value)
+void peer::mysql_update(const std::string &column, const T &value)
 {
     ::hStmt hStmt{ std::format("UPDATE peer SET {} = ? WHERE growid = ?", column).c_str() };
 
@@ -49,7 +51,8 @@ void peer::mysql_update(const std::string& column, const T& value)
         make_bind_in(value),       // SET
         make_bind_in(this->growid) // WHERE
     };
-    hStmt.bind_and_execute(params);
+    hStmt.bind_param(params);
+    hStmt.execute();
 }
 template void peer::mysql_update<signed>(const std::string&, const signed&);
 template void peer::mysql_update<unsigned>(const std::string&, const unsigned&);
@@ -62,17 +65,16 @@ T peer::mysql_select(const std::string &column, const std::string &arg)
     T value{};
     ::hStmt hStmt{ std::format("SELECT {}({}) FROM peer WHERE growid = ? LIMIT 1", arg, column).c_str() };
 
-    MYSQL_BIND param = make_bind_in(this->growid);
-    mysql_stmt_bind_param(hStmt.pStmt, &param);
+    MYSQL_BIND param = make_bind_in(this->growid); // WHERE
+    hStmt.bind_param(&param);
 
-    unsigned long length = 0;
+    u_long length = 0;
     MYSQL_BIND result = make_bind_out(value);
     result.length = &length;
     mysql_stmt_bind_result(hStmt.pStmt, &result);
 
-    mysql_stmt_execute(hStmt.pStmt);
-    mysql_stmt_fetch(hStmt.pStmt);
-    
+    hStmt.execute();
+    hStmt.fetch();
     if constexpr (std::is_same_v<T, std::string>)
         value.resize(length);
 
@@ -119,7 +121,7 @@ void peer::load(const std::string &growid, const std::string &password)
     if (!this->exists(growid)) 
     {
         this->mysql_insert("growid", growid);
-        this->mysql_update<std::string>("password", password);
+        this->mysql_update("password", password);
 
         this->slots.resize(3ull); // @note since it's pre-determined we don't need do peer::emplace, and less iteration
         this->slots[0ull] = ::slot{18, 1};   // @note Fist
@@ -132,8 +134,6 @@ void peer::load(const std::string &growid, const std::string &password)
 
 peer::~peer()
 {
-    this->mysql_update<std::string>("growid", this->growid); // @note mostly for birth certificate. this is unnessesary otherwise
-
     this->mysql_update<std::vector<u_char>>("inventory", this->serialize_inventory().data());
 }
 
@@ -218,15 +218,11 @@ std::vector<ENetPeer*> peers(const std::string &world, peer_condition condition,
 
 void safe_disconnect_peers(int code)
 {
-    puts("killing gurotopia...");
-
     peers("", peer_condition::PEER_ALL, [](ENetPeer &p) { enet_peer_disconnect(&p, 0); });
     enet_host_flush(host);
     enet_host_destroy(host);
     host = nullptr; // @todo clean this up better
     enet_deinitialize();
-
-    puts("killed gurotopia safely!");
 }
 
 state get_state(const std::vector<u_char> &&packet) 

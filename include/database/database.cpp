@@ -7,43 +7,33 @@ MYSQL *db;
 
 void create_table_if_not_exist()
 {
+    std::string query_peer = 
+        "CREATE TABLE IF NOT EXISTS peer ("
+            "uid INT AUTO_INCREMENT PRIMARY KEY,"
+            "growid VARCHAR(18) UNIQUE,"
+            "password VARCHAR(18),"
+            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+            "inventory BLOB"
+        ")";
+    std::string query_world = 
+        "CREATE TABLE IF NOT EXISTS world ("
+            "name VARCHAR(24) NOT NULL PRIMARY KEY,"
+            "blocks BLOB,"
+            "objects BLOB"
+        ")";
+    if (mysql_query(db, query_peer.c_str()) || mysql_query(db, query_world.c_str()))
     {
-        std::string query = R"(
-            CREATE TABLE IF NOT EXISTS peer (
-                uid INT AUTO_INCREMENT PRIMARY KEY,
-                growid VARCHAR(18) UNIQUE,
-                password VARCHAR(128),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                inventory BLOB NULL
-            );
-        )";
-        if (mysql_query(db, query.c_str()))
-        {
-            fprintf(stderr, "%s\n", mysql_error(db));
-        }
-    } // @note delete query
-    {
-        std::string query = R"(
-            CREATE TABLE IF NOT EXISTS world (
-                name VARCHAR(64) NOT NULL PRIMARY KEY,
-                blocks BLOB NULL,
-                objects BLOB NULL
-            );
-        )";
-        if (mysql_query(db, query.c_str()))
-        {
-            fprintf(stderr, "%s\n", mysql_error(db));
-        }
-    } // @note delete query
+        std::fprintf(stderr, "%s\n", mysql_error(db));
+    }
 }
 
 void mysql_connect()
 {
     db = mysql_init(NULL);
 
-    if (!mysql_real_connect(db, gDb_config.host.c_str(), gDb_config.user.c_str(), (gDb_config.password.empty()) ? NULL : gDb_config.password.c_str(), NULL, 3306u, NULL, 0u)) 
+    if (mysql_real_connect(db, gDb_config.host.c_str(), gDb_config.user.c_str(), gDb_config.passwd.c_str(), NULL, 3306u, NULL, 0ul) == NULL) 
     {
-        fprintf(stderr, "%s\n", mysql_error(db));
+        std::fprintf(stderr, "[MariaDB] %s\n", mysql_error(db));
     }
     else printf("connected to MariaDB server on %s:%d\n", db->host, db->port);
 
@@ -60,32 +50,36 @@ hStmt::hStmt(const std::string &query)
     this->pStmt = mysql_stmt_init(db);
     if (!pStmt) 
     {
-        fprintf(stderr, "%s\n", mysql_error(db));
+        std::fprintf(stderr, "%s\n", mysql_error(db));
     }
     if (mysql_stmt_prepare(pStmt, query.c_str(), (u_long)query.size()))
     {
-        fprintf(stderr, "%s\n", mysql_error(db));
+        std::fprintf(stderr, "%s\n", mysql_error(db));
     }
 }
 hStmt::~hStmt() 
 {
     if (mysql_stmt_close(pStmt))
     {
-        fprintf(stderr, "%s\n", mysql_error(db));
+        std::fprintf(stderr, "%s\n", mysql_error(db));
     }
 }
 
-void hStmt::bind_and_execute(MYSQL_BIND *param)
+void hStmt::bind_param(MYSQL_BIND *param)
 {
-    if (mysql_stmt_bind_param(pStmt, param))
-    {
-        fprintf(stderr, "%s\n", mysql_error(db));
-    }
-    if (mysql_stmt_execute(pStmt))
-    {
-        fprintf(stderr, "%s\n", mysql_error(db));
-    }
+    if (mysql_stmt_bind_param(pStmt, param)) log_err();
 }
+void hStmt::execute()
+{
+    if (mysql_stmt_execute(pStmt)) log_err();
+}
+void hStmt::fetch()
+{
+    int value = mysql_stmt_fetch(pStmt);
+    if (value == 1 || value == MYSQL_DATA_TRUNCATED) log_err();
+    else if (value == 0 || value == MYSQL_NO_DATA) /*@todo do something later...*/; // @note success
+}
+
 
 /* ~ hStmt ~ */
 
@@ -157,7 +151,7 @@ MYSQL_BIND make_bind_out(std::vector<u_char> &buffer)
 }
 MYSQL_BIND make_bind_out(::blob &buffer)
 {
-    buffer.data().resize(cord(0, 60)* sizeof(::block));
+    buffer.resize(cord(0, 60)* sizeof(::block));
 
     return { .buffer = buffer.data().data(), .buffer_length = (u_long)buffer.size(), .buffer_type = MYSQL_TYPE_BLOB };
 }

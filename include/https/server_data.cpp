@@ -5,44 +5,40 @@
 
 ::server_data gServer_data{};
 
-::server_data init_server_data()
+void ::server_data::init()
 {
-    ::server_data server_data{};
+    std::ifstream file("server_data.php");
+    if (!file.is_open())
     {
-        std::ifstream file("server_data.php");
-        if (!file.is_open())
+        std::ofstream write("server_data.php");
+        write << 
+            std::format(
+                "server|{}\n"
+                "port|{}\n"
+                "type|{}\n"
+                "type2|{}\n"
+                "#maint|{}\n"
+                "loginurl|{}\n"
+                "meta|{}\n"
+                "RTENDMARKERBS1001", 
+                this->server, this->port, this->type, this->type2, this->maint, this->loginurl, this->meta
+            );
+    } // @note close write
+    else
+    {
+        std::vector<std::string> pipes;
+        for (std::string line; std::getline(file, line); ) 
         {
-            std::ofstream write("server_data.php");
-            write << 
-                std::format(
-                    "server|{}\n"
-                    "port|{}\n"
-                    "type|{}\n"
-                    "type2|{}\n"
-                    "#maint|{}\n"
-                    "loginurl|{}\n"
-                    "meta|{}\n"
-                    "RTENDMARKERBS1001", 
-                    server_data.server, server_data.port, server_data.type, server_data.type2, server_data.maint, server_data.loginurl, server_data.meta
-                );
-        } // @note close write
-        else
-        {
-            std::vector<std::string> pipes;
-            for (std::string line; std::getline(file, line); ) 
-            {
-                auto pipe_pair = readch(line, '|');
-                pipes.insert(pipes.end(), pipe_pair.begin(), pipe_pair.end());
-            }
+            auto pipe_pair = readch(line, '|');
+            pipes.insert(pipes.end(), pipe_pair.begin(), pipe_pair.end());
+        }
 
-            server_data.server = pipes[1];
-            server_data.port = std::stoi(pipes[3]);
-            server_data.type = std::stoi(pipes[5]);
-            server_data.type2 = std::stoi(pipes[7]);
-            server_data.maint = pipes[9];
-            server_data.loginurl = pipes[11];
-            server_data.meta = pipes[13];
-        } // @note delete str, pipes
-    } // @note close file
-    return server_data;
-}
+        this->server = pipes[1];
+        this->port = std::stoi(pipes[3]);
+        this->type = std::stoi(pipes[5]);
+        this->type2 = std::stoi(pipes[7]);
+        this->maint = pipes[9];
+        this->loginurl = pipes[11];
+        this->meta = pipes[13];
+    } // @note delete str, pipes
+} // @note close file

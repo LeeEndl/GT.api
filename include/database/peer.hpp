@@ -82,13 +82,13 @@ public:
 
     void load(const std::string &growid, const std::string &password);
 
-    bool exists(const std::string& growid);
+    bool exists(const std::string &growid);
 
     template<typename T>
-    void mysql_insert(const std::string& column, const T& value);
+    void mysql_insert(const std::string &column, const T &value);
 
     template<typename T>
-    void mysql_update(const std::string& column, const T& value);
+    void mysql_update(const std::string &column, const T &value);
 
     template<typename T>
     T    mysql_select(const std::string &column, const std::string &arg = "");

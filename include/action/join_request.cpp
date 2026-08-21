@@ -15,14 +15,19 @@ void action::join_request(ENetEvent& event, const std::string& header, const std
     try 
     {
         ::peer *pPeer = static_cast<::peer*>(event.peer->data);
+        ::hPipe hPipe{ header };
 
-        std::string big_name{header.size() < 2 ? world_name : readch(header, '|')[3]};
-        if (!alnum(big_name)) throw std::runtime_error("Sorry, spaces and special characters are not allowed in world or door names.  Try again.");
-        std::for_each(big_name.begin(), big_name.end(), [](char& c) { c = std::toupper(c); }); // @note start -> START
+        std::string name =  hPipe["name"];
+        if (name.empty() && !world_name.empty()) name = world_name;
+
+        if (name.length() > 24) throw std::runtime_error(""); // @note impossible unless using a proxy since client caps at 24
+        if (!alnum(name)) throw std::runtime_error("Sorry, spaces and special characters are not allowed in world or door names.  Try again.");
+
+        std::for_each(name.begin(), name.end(), [](char& c) { c = std::toupper(c); }); // @note start -> START
         
-        auto it = std::ranges::find(worlds, big_name, &::world::name);
+        auto it = std::ranges::find(worlds, name, &::world::name);
         if (it == worlds.end()) 
-            it = worlds.emplace(worlds.end(), big_name);
+            it = worlds.emplace(worlds.end(), name);
             
         ::world &world = *it;
         {

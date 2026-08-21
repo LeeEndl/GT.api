@@ -151,8 +151,9 @@ bool world::exists(const std::string& name)
 {
     ::hStmt hStmt{ "SELECT 1 FROM world WHERE name = ? LIMIT 1" };
 
-    MYSQL_BIND param = make_bind_in(name);
-    hStmt.bind_and_execute(&param);
+    MYSQL_BIND param = make_bind_in(name); // WHERE
+    hStmt.bind_param(&param);
+    hStmt.execute();
 
     return (!mysql_stmt_store_result(hStmt.pStmt) && mysql_stmt_num_rows(hStmt.pStmt) > 0);
 }
@@ -162,8 +163,9 @@ void world::mysql_insert(const std::string& column, const T& value)
 {
     ::hStmt hStmt{ std::format("INSERT INTO world ({}) VALUES (?)", column).c_str() };
 
-    MYSQL_BIND param = make_bind_in(value);
-    hStmt.bind_and_execute(&param);
+    MYSQL_BIND param = make_bind_in(value); // VALUES
+    hStmt.bind_param(&param);
+    hStmt.execute();
 }
 template void world::mysql_insert<signed>(const std::string&, const signed&);
 template void world::mysql_insert<unsigned>(const std::string&, const unsigned&);
@@ -180,7 +182,8 @@ void world::mysql_update(const std::string& column, const T& value)
         make_bind_in(value),      // SET
         make_bind_in(this->name) // WHERE
     };
-    hStmt.bind_and_execute(params);
+    hStmt.bind_param(params);
+    hStmt.execute();
 }
 template void world::mysql_update<signed>(const std::string&, const signed&);
 template void world::mysql_update<unsigned>(const std::string&, const unsigned&);
@@ -194,22 +197,21 @@ T world::mysql_select(const std::string &column, const std::string &arg)
     T value{};
     ::hStmt hStmt{ std::format("SELECT {}({}) FROM world WHERE name = ? LIMIT 1", arg, column).c_str() };
 
-    MYSQL_BIND param = make_bind_in(this->name);
-    mysql_stmt_bind_param(hStmt.pStmt, &param);
+    MYSQL_BIND param = make_bind_in(this->name); // WHERE
+    hStmt.bind_param(&param);
+    hStmt.execute();
 
     u_long length = 0;
     MYSQL_BIND result = make_bind_out(value);
     result.length = &length;
     mysql_stmt_bind_result(hStmt.pStmt, &result);
 
-    mysql_stmt_execute(hStmt.pStmt);
-    mysql_stmt_fetch(hStmt.pStmt);
-    
+    hStmt.execute();
+    hStmt.fetch();
     if constexpr (std::is_same_v<T, std::string>)
         value.resize(length);
-    else 
-    if constexpr (std::is_same_v<T, ::blob>)
-        value.data().resize(length);
+    else if constexpr (std::is_same_v<T, ::blob>)
+        value.resize(length);
 
     return value;
 }
