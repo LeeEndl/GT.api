@@ -98,7 +98,7 @@ char get_type(const ::item &item)
     {
         blob.push_back(block.to_blob());
 
-        if (block.fg != 0) // @note so we can save time
+        if (block.fg != 0 || block.fg!=2||block.fg!=4||block.fg!=8||block.fg!=14) // @note so we can save time
         if (char type = get_type(id_to_item(block.fg)); type > '\x00')
         {
             blob.u8(type);
@@ -121,6 +121,16 @@ char get_type(const ::item &item)
                 {
                     blob.push_back(sign->to_blob());
                 }
+            }
+            else if (type == '\x03'/*lock*/)
+            {
+                if (!is_tile_lock(block.fg)) this->is_public = (block.state[2] & S_PUBLIC); // @note check if world lock has S_PUBLIC flag, i will change this later
+                int access = std::ranges::count_if(this->access, std::identity{});
+                
+                blob.u8(this->lock_state);
+                blob.i32(this->owner);
+                blob.i32(access);
+                /* @todo access list */
             }
             else if (type == '\x04'/*seed*/)
             {
@@ -219,6 +229,7 @@ T world::mysql_select(const std::string &column, const std::string &arg)
 void world::mysql_select_all()
 {
     this->name = this->mysql_select<std::string>("name");
+    this->owner = this->mysql_select<int>("owner");
     {
         this->trees.clear();
         ::blob blob = this->mysql_select<::blob>("blocks");
@@ -235,7 +246,7 @@ void world::mysql_select_all()
             blob.read_u8(block.state[2], pos);
             blob.read_u8(block.state[3], pos);
 
-            if (block.fg != 0) // @note so we can save time
+            if (block.fg != 0 || block.fg!=2||block.fg!=4||block.fg!=8||block.fg!=14) // @note so we can save time
             if (char type = get_type(id_to_item(block.fg)); type > '\x00')
             {
                 const ::pos block_pos{i % x, i / x};
@@ -297,7 +308,7 @@ world::world(const std::string &name) : name(name)/*DEFAULT*/
 }
 world::~world()
 {
-    this->mysql_update("name", this->name); // @note for address changer
+    this->mysql_update("owner", this->owner);
     {
         ::blob blob;
 
@@ -510,6 +521,15 @@ void send_tile_update(ENetEvent &event, ::state state, ::block &block, ::world &
                 blob.push_back(sign->to_blob());
             }
             break;
+        }
+        case type::LOCK:
+        {
+            if (!is_tile_lock(block.fg)) world.is_public = (block.state[2] & S_PUBLIC); // @note check if world lock has S_PUBLIC flag, i will change this later
+            int access = std::ranges::count_if(world.access, std::identity{});
+
+            blob.u8(world.lock_state);
+            blob.i32(world.owner);
+            blob.i32(access);
         }
         case type::SEED:
         {

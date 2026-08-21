@@ -18,6 +18,7 @@ void create_table_if_not_exist()
     std::string query_world = 
         "CREATE TABLE IF NOT EXISTS world ("
             "name VARCHAR(24) NOT NULL PRIMARY KEY,"
+            "owner INT DEFAULT 0,"
             "blocks BLOB,"
             "objects BLOB"
         ")";
