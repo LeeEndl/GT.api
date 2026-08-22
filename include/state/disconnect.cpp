@@ -3,7 +3,7 @@
 
 #include "disconnect.hpp"
 
-void disconnect(ENetEvent& event, state state) 
+void disconnect(ENetEvent& event, ::gamePacket gamePacket) 
 {
     action::quit(event, "");
 }

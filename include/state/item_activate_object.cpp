@@ -4,14 +4,14 @@
 
 #include "item_activate_object.hpp"
 
-void item_activate_object(ENetEvent& event, state state) 
+void item_activate_object(ENetEvent& event, ::gamePacket gamePacket) 
 {
     ::peer *pPeer = static_cast<::peer*>(event.peer->data);
 
     auto world = std::ranges::find(worlds, pPeer->recent_worlds.back(), &::world::name);
     if (world == worlds.end()) return;
 
-    auto object = std::ranges::find(world->objects, state.id, &::object::uid);
+    auto object = std::ranges::find(world->objects, gamePacket.id, &::object::uid);
     if (object->id != 112/*gem*/)
     {
         const ::item &item = id_to_item(object->id);

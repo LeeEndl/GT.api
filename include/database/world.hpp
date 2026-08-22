@@ -174,9 +174,9 @@ extern void send_action(ENetPeer &p, const std::string &action, const std::strin
 
 extern void send_data(ENetPeer &peer, const ::blob &blob);
 
-extern void state_visuals(ENetPeer &peer, state &&state);
+extern void state_visuals(ENetPeer &peer, gamePacket &&gamePacket);
 
-extern void tile_apply_damage(ENetEvent &event, state state, block &block, u_int value);
+extern void tile_apply_damage(ENetEvent &event, gamePacket gamePacket, block &block, u_int value);
 
 /*
 * @brief set slot::count to nagative value if you want to remove an amount. 
@@ -184,7 +184,7 @@ extern void tile_apply_damage(ENetEvent &event, state state, block &block, u_int
 */
 extern u_short modify_item_inventory(ENetEvent &event, ::slot slot);
 
-extern void item_change_object(ENetEvent& event, ::state state);
+extern void item_change_object(ENetEvent& event, ::gamePacket gamePacket);
 
 extern void merge_object(ENetEvent& event, ::slot slot, const ::pos &pos, ::world &world);
 extern void remove_object(ENetEvent& event, signed uid);
@@ -192,7 +192,7 @@ extern int  add_object(ENetEvent& event, ::slot slot, const ::pos &pos, ::world 
 
 extern void add_drop(ENetEvent &event, ::slot im, ::pos pos, ::world &world);
 
-extern void send_tile_update(ENetEvent &event, state s, ::block &b, ::world &world);
+extern void send_tile_update(ENetEvent &event, gamePacket s, ::block &b, ::world &world);
 
 /*
 * @param speed actually just the particle color & visual, not the speed.
@@ -200,7 +200,7 @@ extern void send_tile_update(ENetEvent &event, state s, ::block &b, ::world &wor
 */
 extern void send_particle_effect(ENetEvent &event, const ::pos &pos, ::pos speed, int id = 0xc8*0, float offset = 0.0f);
 
-extern void remove_fire(ENetEvent &event, state state, ::block &block, ::world& world);
+extern void remove_fire(ENetEvent &event, gamePacket gamePacket, ::block &block, ::world& world);
 
 extern void fireworks(ENetEvent &event, const ::pos &pos);
 

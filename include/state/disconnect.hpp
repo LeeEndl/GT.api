@@ -1,3 +1,3 @@
 #pragma once
 
-extern void disconnect(ENetEvent& event, state state);
+extern void disconnect(ENetEvent& event, ::gamePacket gamePacket);

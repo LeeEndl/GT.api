@@ -5,16 +5,16 @@
 
 #include "item_activate.hpp"
 
-void item_activate(ENetEvent& event, state state)
+void item_activate(ENetEvent& event, ::gamePacket gamePacket)
 {
     ::peer *pPeer = static_cast<::peer*>(event.peer->data);
 
-    const ::item &item = id_to_item(state.id);
+    const ::item &item = id_to_item(gamePacket.id);
     if (item.cloth_type != clothing::none) 
     {
         float &current_cloth = pPeer->clothing[item.cloth_type]; // @note ID of the current clothing being changed
 
-        current_cloth = (current_cloth == state.id) ? 0 : state.id;
+        current_cloth = (current_cloth == gamePacket.id) ? 0 : gamePacket.id;
 
         pPeer->update_effects();
         
@@ -23,12 +23,12 @@ void item_activate(ENetEvent& event, state state)
         if (punch_id != 0)
             pPeer->punch_effect = punch_id;
 
-        send_varlist(event.peer, { "OnEquipNewItem", state.id }, pPeer->netid);
+        send_varlist(event.peer, { "OnEquipNewItem", gamePacket.id }, pPeer->netid);
         on::SetClothing(*event.peer); // @todo
     }
     else 
     {
-        const auto item = std::ranges::find(pPeer->slots, state.id, &::slot::id);
+        const auto item = std::ranges::find(pPeer->slots, gamePacket.id, &::slot::id);
         if (item == pPeer->slots.end()) return;
         
         if (item->id == 242 && item->count >= 100) 

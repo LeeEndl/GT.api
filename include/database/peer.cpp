@@ -220,51 +220,52 @@ void safe_disconnect_peers(int code)
 {
     peers("", peer_condition::PEER_ALL, [](ENetPeer &p) { enet_peer_disconnect(&p, 0); });
     enet_host_flush(host);
+    
     enet_host_destroy(host);
     host = nullptr; // @todo clean this up better
     enet_deinitialize();
 }
 
-state get_state(const std::vector<u_char> &&packet) 
+gamePacket make_gamePacket(const enet_uint8 *data) 
 {
-    const int     *i32   = reinterpret_cast<const int*>(packet.data());
-    const u_int *u_i32 = reinterpret_cast<const u_int*>(packet.data());
-    const float   *f_i32 = reinterpret_cast<const float*>(packet.data());
+    const int   *i32   = reinterpret_cast<const int*>(data);
+    const u_int *u32 = reinterpret_cast<const u_int*>(data);
+    const float *f32 = reinterpret_cast<const float*>(data);
 
-    return state{
-        .type = i32[1],
+    return gamePacket{
+        .type  = i32[1],
         .netid = i32[2],
-        .uid = i32[3],
-        .peer_state = i32[4],
-        .count = f_i32[5],
-        .id = i32[6],
-        .pos = ::pos{f_i32[7], f_i32[8]},
-        .speed = ::pos{f_i32[9], f_i32[10]},
-        .idk = f_i32[11],
+        .uid   = i32[3],
+        .state = i32[4],
+        .count = f32[5],
+        .id    = i32[6],
+        .pos   = ::pos{f32[7], f32[8]},
+        .speed = ::pos{f32[9], f32[10]},
+        .idk   = f32[11],
         .punch = ::pos{i32[12], i32[13]},
-        .size = u_i32[14]
+        .size  = u32[14]
     };
 }
 
-::blob compress_state(const state &state) 
+::blob compress_state(const gamePacket &gamePacket) 
 {
     ::blob blob{};
     
-    blob.i32(state.packet_create);
-    blob.i32(state.type);
-    blob.i32(state.netid);
-    blob.i32(state.uid);
-    blob.i32(state.peer_state);
-    blob.f32(state.count);
-    blob.i32(state.id);
-    blob.f32(state.pos.x);
-    blob.f32(state.pos.y);
-    blob.f32(state.speed.x);
-    blob.f32(state.speed.y);
-    blob.f32(state.idk);
-    blob.i32(state.punch.x);
-    blob.i32(state.punch.y);
-    blob.i32(state.size);
+    blob.i32(gamePacket.packet_create);
+    blob.i32(gamePacket.type);
+    blob.i32(gamePacket.netid);
+    blob.i32(gamePacket.uid);
+    blob.i32(gamePacket.state);
+    blob.f32(gamePacket.count);
+    blob.i32(gamePacket.id);
+    blob.f32(gamePacket.pos.x);
+    blob.f32(gamePacket.pos.y);
+    blob.f32(gamePacket.speed.x);
+    blob.f32(gamePacket.speed.y);
+    blob.f32(gamePacket.idk);
+    blob.i32(gamePacket.punch.x);
+    blob.i32(gamePacket.punch.y);
+    blob.i32(gamePacket.size);
 
     return blob;
 }
@@ -273,10 +274,10 @@ void send_inventory_state(ENetEvent &event)
 {
     ::peer *pPeer = static_cast<::peer*>(event.peer->data);
 
-    ::blob blob = compress_state(::state{
+    ::blob blob = compress_state(::gamePacket{
         .type = 0x09, // @note PACKET_SEND_INVENTORY_STATE
         .netid = pPeer->netid,
-        .peer_state = peer_state::S_EXTENDED
+        .state = state::S_EXTENDED
     });
     blob.u8(0x01); // @note enable flag for big backpack
 

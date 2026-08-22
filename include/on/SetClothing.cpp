@@ -14,8 +14,7 @@ void on::SetClothing(ENetPeer &peer)
         CL_Vec3f{pPeer->clothing[ances], 0.0f, 0.0f}
     }, pPeer->netid);
 
-    ::state state
-    {
+    ::gamePacket gamePacket {
         .type = 0x14 | ((0x808000 + pPeer->punch_effect) << 8), // @note 0x8080{}14 - PACKET_SET_CHARACTER_STATE
         .netid = pPeer->netid,
         .count = 125.0f, // @note gtnoob has this as 'waterspeed'
@@ -24,5 +23,5 @@ void on::SetClothing(ENetPeer &peer)
         .speed = ::pos{ 250.0f, 1000.0f }, // @note magic numbers
         .punch = ::pos{ pPeer->hair_color, 0x00000000 }
     };
-    state_visuals(peer, std::move(state)); // @todo handle for 'p'
+    state_visuals(peer, std::move(gamePacket)); // @todo handle for 'p'
 }

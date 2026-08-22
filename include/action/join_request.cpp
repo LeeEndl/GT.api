@@ -31,7 +31,7 @@ void action::join_request(ENetEvent& event, const std::string& header, const std
             
         ::world &world = *it;
         {
-            ::blob blob = compress_state(::state{ .type = 0x04, /*PACKET_SEND_MAP_DATA*/ .peer_state = peer_state::S_EXTENDED });
+            ::blob blob = compress_state(::gamePacket{ .type = 0x04, /*PACKET_SEND_MAP_DATA*/ .state = state::S_EXTENDED });
             blob.push_back(world.serialize());
 
             enet_peer_send(event.peer, 0, enet_packet_create(blob.data().data(), blob.size(), ENET_PACKET_FLAG_RELIABLE));

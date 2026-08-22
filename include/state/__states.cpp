@@ -8,7 +8,7 @@
 #include "disconnect.hpp"
 #include "__states.hpp"
 
-std::unordered_map<u_char, std::function<void(ENetEvent&, state)>> state_pool
+std::unordered_map<u_char, std::function<void(ENetEvent&, ::gamePacket)>> state_pool
 {
     {0x00, std::bind(&movement, std::placeholders::_1, std::placeholders::_2)},
     {0x03, std::bind(&tile_change, std::placeholders::_1, std::placeholders::_2)},

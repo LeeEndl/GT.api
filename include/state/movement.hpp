@@ -1,3 +1,3 @@
 #pragma once
 
-extern void movement(ENetEvent& event, state state);
+extern void movement(ENetEvent& event, ::gamePacket gamePacket);

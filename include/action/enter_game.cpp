@@ -39,7 +39,7 @@ void action::enter_game(ENetEvent& event, const std::string& header)
     on::RequestWorldSelectMenu(event);
     on::RequestGazette(event);
 
-    send_data(*event.peer, compress_state(::state{ .type = 0x16 /*PACKET_PING_REQUEST*/ }));
+    send_data(*event.peer, compress_state(::gamePacket{ .type = 0x16 /*PACKET_PING_REQUEST*/ }));
     /* for v5.47+ client */
     send_varlist(event.peer, {
         "OnSetFeatureEnableFlags",

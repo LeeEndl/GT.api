@@ -388,49 +388,49 @@ void send_action(ENetPeer& p, const std::string &action, const std::string &str)
 void send_data(ENetPeer &peer, const ::blob &blob)
 {
     ENetPacket *packet = enet_packet_create(blob.data().data(), blob.size(), ENET_PACKET_FLAG_RELIABLE);
-    if (packet == nullptr || packet->dataLength < sizeof(::state)) return;
+    if (packet == nullptr || packet->dataLength < sizeof(::gamePacket)) return;
 
     enet_peer_send(&peer, 1, packet);
 }
 
-void state_visuals(ENetPeer &peer, state &&state) 
+void state_visuals(ENetPeer &peer, ::gamePacket &&gamePacket) 
 {
     ::peer *pPeer = static_cast<::peer*>(peer.data);
 
     peers(pPeer->recent_worlds.back(), PEER_SAME_WORLD, [&](ENetPeer &p) 
     {
-        send_data(p, compress_state(state));
+        send_data(p, compress_state(gamePacket));
     });
 }
 
-void tile_apply_damage(ENetEvent &event, state state, block &block, u_int value)
+void tile_apply_damage(ENetEvent &event, ::gamePacket gamePacket, block &block, u_int value)
 {
     ::peer *pPeer = static_cast<::peer*>(event.peer->data);
 
     (block.fg == 0) ? ++block.hits[1] : ++block.hits[0];
-    state.type = (value << 24) | 0x000008; // @note 0x{}000008
-    state.id = 6; // @note idk exactly
-    state.netid = pPeer->netid;
-	state_visuals(*event.peer, std::move(state));
+    gamePacket.type = (value << 24) | 0x000008; // @note 0x{}000008
+    gamePacket.id = 6; // @note idk exactly
+    gamePacket.netid = pPeer->netid;
+	state_visuals(*event.peer, std::move(gamePacket));
 }
 
 u_short modify_item_inventory(ENetEvent &event, ::slot slot)
 {   
     ::peer *pPeer = static_cast<::peer*>(event.peer->data);
 
-    ::state state{.id = slot.id};
-    if (slot.count < 0) state.type = (slot.count*-1 << 16) | 0x000d; // @noote 0x00{}000d
-    else                state.type = (slot.count    << 24) | 0x000d; // @noote 0x{}00000d
-    state_visuals(*event.peer, std::move(state));
+    ::gamePacket gamePacket{.id = slot.id};
+    if (slot.count < 0) gamePacket.type = (slot.count*-1 << 16) | 0x000d; // @noote 0x00{}000d
+    else                gamePacket.type = (slot.count    << 24) | 0x000d; // @noote 0x{}00000d
+    state_visuals(*event.peer, std::move(gamePacket));
 
     return pPeer->emplace(::slot(slot.id, slot.count));
 }
 
-void item_change_object(ENetEvent &event, ::state state) 
+void item_change_object(ENetEvent &event, ::gamePacket gamePacket) 
 {
-    state.type = 0x0e; // @note PACKET_ITEM_CHANGE_OBJECT
+    gamePacket.type = 0x0e; // @note PACKET_ITEM_CHANGE_OBJECT
 
-    state_visuals(*event.peer, std::move(state));
+    state_visuals(*event.peer, std::move(gamePacket));
 }
 
 void merge_object(ENetEvent &event, ::slot slot, const ::pos &pos, ::world &world)
@@ -441,7 +441,7 @@ void merge_object(ENetEvent &event, ::slot slot, const ::pos &pos, ::world &worl
     /* @todo avoid surpassing 200 and call add_object() for the remaining amount */ // @note future self reference peer::emplace()...
     object->count += slot.count;
 
-    item_change_object(event, ::state{
+    item_change_object(event, ::gamePacket{
         .netid = (int)0xfffffffd,
         .uid   = (int)object->uid,
         .count = static_cast<float>(object->count),
@@ -454,7 +454,7 @@ void remove_object(ENetEvent& event, signed uid)
 {
     ::peer *pPeer = static_cast<::peer*>(event.peer->data);
 
-    item_change_object(event, ::state{
+    item_change_object(event, ::gamePacket{
         .netid = pPeer->netid,
         .uid   = (int)0xffffffff,
         .id    = uid
@@ -474,7 +474,7 @@ int add_object(ENetEvent& event, ::slot slot, const ::pos& pos, ::world &world)
     }
     ::object it = world.objects.emplace_back(::object(slot.id, slot.count, pos, ++world.last_object_uid)); // @note a iterator ahead of time
 
-    item_change_object(event, ::state{
+    item_change_object(event, ::gamePacket{
         .netid = (int)0xffffffff,
         .uid   = (int)it.uid,
         .count = static_cast<float>(slot.count),
@@ -492,11 +492,11 @@ void add_drop(ENetEvent &event, ::slot im, ::pos pos, ::world &world) // @todo
     }, world);
 }
 
-void send_tile_update(ENetEvent &event, ::state state, ::block &block, ::world &world) 
+void send_tile_update(ENetEvent &event, ::gamePacket gamePacket, ::block &block, ::world &world) 
 {
-    state.type = 05; // @note PACKET_SEND_TILE_UPDATE_DATA
-    state.peer_state = peer_state::S_EXTENDED;
-    ::blob blob = compress_state(state);
+    gamePacket.type = 05; // @note PACKET_SEND_TILE_UPDATE_DATA
+    gamePacket.state = state::S_EXTENDED;
+    ::blob blob = compress_state(gamePacket);
 
     blob.push_back(block.to_blob());
 
@@ -506,7 +506,7 @@ void send_tile_update(ENetEvent &event, ::state state, ::block &block, ::world &
     {
         case type::DOOR:
         {
-            auto door = std::ranges::find(world.doors, state.punch, &::door::pos);
+            auto door = std::ranges::find(world.doors, gamePacket.punch, &::door::pos);
             if (door != world.doors.end())
             {
                 blob.push_back(door->to_blob());
@@ -515,7 +515,7 @@ void send_tile_update(ENetEvent &event, ::state state, ::block &block, ::world &
         }
         case type::SIGN:
         {
-            auto sign = std::ranges::find(world.signs, state.punch, &::sign::pos);
+            auto sign = std::ranges::find(world.signs, gamePacket.punch, &::sign::pos);
             if (sign != world.signs.end())
             {
                 blob.push_back(sign->to_blob());
@@ -533,7 +533,7 @@ void send_tile_update(ENetEvent &event, ::state state, ::block &block, ::world &
         }
         case type::SEED:
         {
-            auto tree = std::ranges::find(world.trees, state.punch, &::tree::pos);
+            auto tree = std::ranges::find(world.trees, gamePacket.punch, &::tree::pos);
             if (tree != world.trees.end())
             {
                 blob.push_back(tree->to_blob(true));
@@ -550,7 +550,7 @@ void send_tile_update(ENetEvent &event, ::state state, ::block &block, ::world &
 
 void send_particle_effect(ENetEvent &event, const ::pos& pos, ::pos speed, int id, float offset)
 {
-    state_visuals(*event.peer, ::state{
+    state_visuals(*event.peer, ::gamePacket{
         .type = 0x11, // @note PACKET_SEND_PARTICLE_EFFECT
         .netid = id, // @todo figure out if this is correct, i just assumed from firework visuals
         .id = id,
@@ -560,12 +560,12 @@ void send_particle_effect(ENetEvent &event, const ::pos& pos, ::pos speed, int i
     });
 }
 
-void remove_fire(ENetEvent &event, state state, ::block &block, ::world &world)
+void remove_fire(ENetEvent &event, gamePacket gamePacket, ::block &block, ::world &world)
 {
-    send_particle_effect(event, state.punch.by_32(), {0x00, 0x95});
+    send_particle_effect(event, gamePacket.punch.by_32(), {0x00, 0x95});
 
     block.state[3] &= ~S_FIRE;
-    send_tile_update(event, state, block, world);
+    send_tile_update(event, gamePacket, block, world);
 
     ::peer *pPeer = static_cast<::peer*>(event.peer->data);
 

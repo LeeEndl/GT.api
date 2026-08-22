@@ -3,14 +3,14 @@
 #include "action/quit_to_exit.hpp"
 #include "tile_activate.hpp"
 
-void tile_activate(ENetEvent& event, state state)
+void tile_activate(ENetEvent& event, ::gamePacket gamePacket)
 {
     ::peer *pPeer = static_cast<::peer*>(event.peer->data);
 
     auto world = std::ranges::find(worlds, pPeer->recent_worlds.back(), &::world::name);
     if (world == worlds.end()) return;
 
-    ::block &block = world->blocks[cord(state.punch.x, state.punch.y)];
+    ::block &block = world->blocks[cord(gamePacket.punch.x, gamePacket.punch.y)];
     const ::item &item = id_to_item(block.fg);
     switch (item.type)
     {
@@ -22,7 +22,7 @@ void tile_activate(ENetEvent& event, state state)
         case type::DOOR: // @todo add door-to-door with door::id
         case type::PORTAL:
         {
-            auto door = std::ranges::find(world->doors, state.punch, &::door::pos);
+            auto door = std::ranges::find(world->doors, gamePacket.punch, &::door::pos);
             if (door != world->doors.end() && !door->dest.empty())
             {
                 const std::string_view dest{ door->dest };
@@ -54,14 +54,14 @@ void tile_activate(ENetEvent& event, state state)
             ::block &checkpoint = world->blocks[cord(pPeer->rest_pos.by_32(true).x, pPeer->rest_pos.by_32(true).y)]; // @note get previous checkpoint from respawn position
 
             checkpoint.state[2] &= ~S_TOGGLE;
-            send_tile_update(event, ::state{.id = block.fg/*has to be 'block' or else iterfere with main door*/, .punch = pPeer->rest_pos.by_32(true)}, checkpoint, *world);
+            send_tile_update(event, ::gamePacket{.id = block.fg/*has to be 'block' or else iterfere with main door*/, .punch = pPeer->rest_pos.by_32(true)}, checkpoint, *world);
 
-            pPeer->rest_pos = state.punch.by_32();
+            pPeer->rest_pos = gamePacket.punch.by_32();
             block.state[2] |= S_TOGGLE; // @note toggle current checkpoint
-            send_tile_update(event, ::state{.id = block.fg, .punch = state.punch}, block, *world);
+            send_tile_update(event, ::gamePacket{.id = block.fg, .punch = gamePacket.punch}, block, *world);
             break;
         }
     }
 
-    state_visuals(*event.peer, std::move(state)); // finished.
+    state_visuals(*event.peer, std::move(gamePacket)); // finished.
 }

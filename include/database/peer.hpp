@@ -163,25 +163,25 @@ extern std::vector<ENetPeer*> peers(const std::string &world = "", peer_conditio
 
 extern void safe_disconnect_peers(int signal);
 
-enum peer_state : int
+enum state : int
 {
-    S_UPDATE          = 0x04,
-    S_EXTENDED        = 0x08,
-    S_MOVE_LEFT       = 0x10,
-    S_MOVE_RIGHT      = 0x20,
-    S_LAVA_HIT        = 0x40,
-    S_JUMP            = 0x80,
-    S_ACTIVATE_OBJECT = 0x4000
+    S_UPDATE          = 0x00000004,
+    S_EXTENDED        = 0x00000008,
+    S_MOVE_LEFT       = 0x00000010,
+    S_MOVE_RIGHT      = 0x00000020,
+    S_LAVA_HIT        = 0x00000040,
+    S_JUMP            = 0x00000080,
+    S_ACTIVATE_OBJECT = 0x00004000
 };
 
-class state {
+class gamePacket {
 public:
     int packet_create{ 04 }; // @note NET_MESSAGE_GAME_PACKET
 
     int type{};
     int netid{};
     int uid{}; // @todo understand this better @note so far I think this holds uid value
-    int peer_state{};
+    int state{};
     float count{}; // @todo understand this better
     int id{}; // @note peer's active hand, so 18 (fist) = punching, 32 (wrench) interacting, ect
     ::pos pos{}; // @note position 1D {x, y}
@@ -191,9 +191,9 @@ public:
     u_int size{};
 };
 
-extern state get_state(const std::vector<u_char> &&packet);
+extern gamePacket make_gamePacket(const enet_uint8 *data);
 
 /* put it back into it's original form */
-extern ::blob compress_state(const state &state);
+extern ::blob compress_state(const gamePacket &gamePacket);
 
 extern void send_inventory_state(ENetEvent &event);

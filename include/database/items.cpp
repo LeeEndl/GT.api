@@ -14,7 +14,7 @@ const ::item &id_to_item(u_short id) noexcept // @note std::out_of_range is hand
 }
 
 
-std::vector<u_char> im_data(sizeof(::state)/*inital packet*/, 0x00);
+std::vector<u_char> im_data(sizeof(::gamePacket)/*inital packet*/, 0x00);
 
 template<typename T>
 void shift_pos(const std::vector<u_char> &data, u_int &pos, T &value) noexcept // @note std::out_of_range is handled
@@ -45,9 +45,9 @@ void data_modify(std::vector<u_char> &data, const u_int &pos, const T &value) no
 void decode_items()
 {
     const u_int size = std::filesystem::file_size("items.dat");
-    im_data = compress_state(::state{ .type = 0x10,/*PACKET_SEND_ITEM_DATABASE_DATA*/ .peer_state = peer_state::S_EXTENDED, .size = size }).data();
+    im_data = compress_state(::gamePacket{ .type = 0x10,/*PACKET_SEND_ITEM_DATABASE_DATA*/ .state = state::S_EXTENDED, .size = size }).data();
     
-    u_int pos = im_data.size(); // @note sizeof(::state)
+    u_int pos = im_data.size(); // @note sizeof(::gamePacket)
     im_data.resize(pos + size); // @note resize to fit binary data
     
     std::ifstream("items.dat", std::ios::binary)

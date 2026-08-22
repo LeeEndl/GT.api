@@ -30,12 +30,13 @@ void receive(ENetEvent& event)
         }
         case 4: 
         {
-            if (event.packet->dataLength < sizeof(::state)) break;
+            if (event.packet->dataLength < sizeof(::gamePacket)) break;
 
-            ::state state = get_state({event.packet->data, event.packet->data + (event.packet->dataLength)});
+            ::gamePacket gamePacket = make_gamePacket(event.packet->data);
+            gamePacket.size = event.packet->dataLength - sizeof(::gamePacket); // @todo did i do this right? or check for flag ::EXTENDED
 
-            if (const auto i = state_pool.find(state.type); i != state_pool.end())
-                i->second(event, std::move(state));
+            if (const auto i = state_pool.find(gamePacket.type); i != state_pool.end())
+                i->second(event, std::move(gamePacket));
             break;
         }
     }
