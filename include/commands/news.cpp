@@ -1,5 +1,5 @@
 #include "pch.hpp"
-#include "on/RequestGazette.hpp"
+#include "onVariant/RequestGazette.hpp"
 
 #include "news.hpp"
 

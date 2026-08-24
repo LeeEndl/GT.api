@@ -1,8 +1,8 @@
 #include "pch.hpp"
 #include "items.hpp"
 #include "world.hpp"
-#include "on/SetClothing.hpp"
-#include "on/CountryState.hpp"
+#include "onVariant/SetClothing.hpp"
+#include "onVariant/CountryState.hpp"
 #include "commands/punch.hpp"
 #include "tools/string.hpp"
 

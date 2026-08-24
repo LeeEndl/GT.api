@@ -1,6 +1,6 @@
 #include "pch.hpp"
 #include "commands/__command.hpp"
-#include "on/ConsoleMessage.hpp"
+#include "onVariant/ConsoleMessage.hpp"
 #include "tools/time.hpp"
 #include "input.hpp"
 

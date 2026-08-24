@@ -2,9 +2,9 @@
 #include "connect.hpp"
 #include "disconnect.hpp"
 #include "receive.hpp"
-#include "__event_type.hpp"
+#include "_eventType.hpp"
 
-std::unordered_map<ENetEventType, std::function<void(ENetEvent&)>> event_pool
+std::unordered_map<ENetEventType, std::function<void(ENetEvent&)>> eventType_pool
 {
     {::ENET_EVENT_TYPE_CONNECT, std::bind(&_connect, std::placeholders::_1)},
     {::ENET_EVENT_TYPE_DISCONNECT, std::bind(&disconnect, std::placeholders::_1)},

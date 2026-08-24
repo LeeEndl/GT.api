@@ -26,6 +26,7 @@ struct pos {
     pos() = default;
     pos(float _x, float _y) : x(_x), y(_y) {}
     pos(int _x, int _y)     : x(_x), y(_y) {}
+    pos(u_int _x, u_int _y) : x(_x), y(_y) {} // @todo can this even be unsigned?
 
     float x, y;
 

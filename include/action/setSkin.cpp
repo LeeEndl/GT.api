@@ -1,5 +1,5 @@
 #include "pch.hpp"
-#include "on/SetClothing.hpp"
+#include "onVariant/SetClothing.hpp"
 #include "setSkin.hpp"
 
 void action::setSkin(ENetEvent& event, const std::string& header)

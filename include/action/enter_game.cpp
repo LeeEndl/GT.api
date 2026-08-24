@@ -1,8 +1,8 @@
 #include "pch.hpp"
-#include "on/RequestWorldSelectMenu.hpp"
-#include "on/RequestGazette.hpp"
-#include "on/ConsoleMessage.hpp"
-#include "on/SetBux.hpp"
+#include "onVariant/RequestWorldSelectMenu.hpp"
+#include "onVariant/RequestGazette.hpp"
+#include "onVariant/ConsoleMessage.hpp"
+#include "onVariant/SetBux.hpp"
 #include "tools/create_dialog.hpp"
 #include "automate/holiday.hpp"
 

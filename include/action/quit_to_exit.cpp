@@ -1,6 +1,6 @@
 #include "pch.hpp"
-#include "on/RequestWorldSelectMenu.hpp"
-#include "on/ConsoleMessage.hpp"
+#include "onVariant/RequestWorldSelectMenu.hpp"
+#include "onVariant/ConsoleMessage.hpp"
 #include "quit_to_exit.hpp"
 
 void action::quit_to_exit(ENetEvent& event, const std::string& header, bool skip_selection = false) 

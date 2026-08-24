@@ -1,9 +1,9 @@
 /*
     @copyright gurotopia (c) 2024-05-25
-    @version parent SHA: 469c82972831471522888b2ab0faabc2a12d3248 2026-8-22
+    @version parent SHA: e440b2ec39ab3da16ea4011049067400fd900e65 2026-8-24
 */
 #include "include/pch.hpp"
-#include "include/event_type/__event_type.hpp"
+#include "include/eventType/_eventType.hpp"
 
 #include "include/database/shouhin.hpp" // @note init_shouhin_tachi()
 #include "include/https/https.hpp" // @note https::listener()
@@ -44,7 +44,7 @@ int main()
     host->checksum = enet_crc32;
     enet_host_compress_with_range_coder(host);
 
-    gDb_config = load_database_config();
+    gDb_config.init();
     mysql_connect();
     decode_items();      // @note reads items.dat into legible class members (id, item name, ect)
     parse_store();       // @todo thread loop this so the store can update without restarting server (stored in .\resource\store.txt)
@@ -53,7 +53,7 @@ int main()
     ENetEvent event{};
     while (!gSignal)
         while (enet_host_service(host, &event, 1000/*ms*/) > 0)
-            if (const auto i = event_pool.find(event.type); i != event_pool.end())
+            if (const auto i = eventType_pool.find(event.type); i != eventType_pool.end())
                 i->second(event);
 
     safe_disconnect_peers(gSignal);

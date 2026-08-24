@@ -1,6 +1,6 @@
 #include "pch.hpp"
 #include "store.hpp"
-#include "on/SetBux.hpp"
+#include "onVariant/SetBux.hpp"
 #include "database/shouhin.hpp"
 #include "buy.hpp"
 
@@ -12,7 +12,7 @@ void action::buy(ENetEvent& event, const std::string& header, const std::string_
     ::peer *pPeer = static_cast<::peer*>(event.peer->data);
 
     int No = (pPeer->slot_size - 16) / 10 + 1; // @note number of upgrades | credits: https://growtopia.fandom.com/wiki/Backpack_Upgrade
-    u_short backpack_cost = (100 * No * No - 200 * No + 200);
+    int backpack_cost = (100 * No * No - 200 * No + 200);
 
     auto growtoken = std::ranges::find(pPeer->slots, 1486, &::slot::id);
 
@@ -86,7 +86,6 @@ void action::buy(ENetEvent& event, const std::string& header, const std::string_
                 });
                 return;
             }
-            srand(std::time(0));
             std::vector<short> ids{};
             if (shouhin.btn == "basic_splice") // @note source: https://growtopia.fandom.com/wiki/Basic_Splicing_Kit
             {
@@ -132,6 +131,8 @@ void action::buy(ENetEvent& event, const std::string& header, const std::string_
                 else modify_item_inventory(event, {im.first, im.second});
                 received.append(std::format("{}, ", item.raw_name)); // @todo add green text to rare items, or something cool.
             }
+            shouhin.im.clear(); // @todo
+
             send_varlist(event.peer, { "OnStorePurchaseResult", (_tab < 5) ? 
                 std::format(
                     "You've purchased `0{}`` for `${}`` Gems.\nYou have `${}`` Gems left.\n\n`5Received: ```0{}``",
@@ -140,7 +141,7 @@ void action::buy(ENetEvent& event, const std::string& header, const std::string_
                     "You've purchased `0{}`` for `${}`` `2Growtokens``.\nYou have `${}`` `2Growtokens`` left.\n\n`5Received: ```0{}``",
                     shouhin.name, growtoken_cost, growtoken->count - growtoken_cost, received)
             });
-            if (_tab < 5) on::SetBux(event);
+            if (_tab < 5/*growtoken tab*/) on::SetBux(event);
             else modify_item_inventory(event, ::slot(growtoken->id, -growtoken_cost));
             break;
         }

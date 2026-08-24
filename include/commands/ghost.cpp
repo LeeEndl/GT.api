@@ -1,5 +1,5 @@
 #include "pch.hpp"
-#include "on/SetClothing.hpp"
+#include "onVariant/SetClothing.hpp"
 #include "ghost.hpp"
 
 void ghost(ENetEvent& event, const std::string_view text)

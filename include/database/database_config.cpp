@@ -5,36 +5,31 @@
 
 ::database_config gDb_config{};
 
-::database_config load_database_config()
+void ::database_config::init()
 {
-    ::database_config db_config{};
+    std::ifstream file("mysql_login.txt");
+    if (!file.is_open())
     {
-        std::ifstream file("database.cfg");
-        if (!file.is_open())
+        std::ofstream write("mysql_login.txt");
+        write << 
+            std::format(
+                /* @note this is read via std::getline() into readch(), pipe-delimited format */
+                "host|{}\n"
+                "user|{}\n"
+                "password|{}\n",
+                this->host, this->user, this->passwd
+            );
+    } // @note close write
+    else
+    {
+        std::vector<std::string> pipes;
+        for (std::string line; std::getline(file, line); ) 
         {
-            std::ofstream write("database.cfg");
-            write << 
-                std::format(
-                    /* @note this is read via std::getline() into readch(), pipe-delimited format */
-                    "host|{}\n"
-                    "user|{}\n"
-                    "password|{}\n",
-                    db_config.host, db_config.user, db_config.passwd
-                );
-        } // @note close write
-        else
-        {
-            std::vector<std::string> pipes;
-            for (std::string line; std::getline(file, line); ) 
-            {
-                auto pipe_pair = readch(line, '|');
-                pipes.insert(pipes.end(), pipe_pair.begin(), pipe_pair.end());
-            }
-
-            db_config.host     = pipes[1];
-            db_config.user     = pipes[3];
-            db_config.passwd = pipes[5];
-        } // @note delete pipes
-    } // @note close file
-    return db_config;
+            auto pipe_pair = readch(line, '|');
+            pipes.insert(pipes.end(), pipe_pair.begin(), pipe_pair.end());
+        }
+        this->host   = pipes[1];
+        this->user   = pipes[3];
+        this->passwd = pipes[5];
+    } // @note delete pipes
 }

@@ -1,7 +1,7 @@
 #include "pch.hpp"
-#include "on/SetClothing.hpp"
+#include "onVariant/SetClothing.hpp"
 #include "commands/punch.hpp"
-#include "on/ConsoleMessage.hpp"
+#include "onVariant/ConsoleMessage.hpp"
 
 #include "item_activate.hpp"
 

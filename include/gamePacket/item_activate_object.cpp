@@ -1,6 +1,6 @@
 #include "pch.hpp"
-#include "on/SetBux.hpp"
-#include "on/ConsoleMessage.hpp"
+#include "onVariant/SetBux.hpp"
+#include "onVariant/ConsoleMessage.hpp"
 
 #include "item_activate_object.hpp"
 

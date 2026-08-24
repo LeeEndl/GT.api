@@ -1,6 +1,6 @@
 #include "pch.hpp"
-#include "on/SetClothing.hpp"
-#include "on/ConsoleMessage.hpp"
+#include "onVariant/SetClothing.hpp"
+#include "onVariant/ConsoleMessage.hpp"
 
 #include "punch.hpp"
 

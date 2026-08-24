@@ -1,6 +1,6 @@
 #include "pch.hpp"
 #include "action/__action.hpp"
-#include "state/__states.hpp"
+#include "gamePacket/_gamePacket.hpp"
 #include "receive.hpp"
 
 void receive(ENetEvent& event) 
@@ -35,7 +35,7 @@ void receive(ENetEvent& event)
             ::gamePacket gamePacket = make_gamePacket(event.packet->data);
             gamePacket.size = event.packet->dataLength - sizeof(::gamePacket); // @todo did i do this right? or check for flag ::EXTENDED
 
-            if (const auto i = state_pool.find(gamePacket.type); i != state_pool.end())
+            if (const auto i = gamePacket_pool.find(gamePacket.type); i != gamePacket_pool.end())
                 i->second(event, std::move(gamePacket));
             break;
         }
