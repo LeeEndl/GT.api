@@ -21,6 +21,13 @@ char get_type(const ::item &item)
     return '\x00';
 }
 
+void block::reset()
+{
+    this->fg = 0;
+    this->bg = 0;
+    for (u_char &s : this->state) s = 0;
+}
+
 ::blob block::to_blob() const
 {
     blob blob;
@@ -634,17 +641,12 @@ bool door_mover(::world &world, const ::pos &pos)
     return true;
 }
 
-void blast::thermonuclear(::world &world, const std::string &name)
+void blast::thermonuclear(::world &world)
 {
-    const u_short main_door = RandomRange(2, cord(0, 60) / 100 - 4);
-    std::vector<::block> blocks(cord(0, 60), ::block{0, 0});
-    for (std::size_t i = 0ull; i < blocks.size(); ++i)
+    for (::block &block : world.blocks)
     {
-        blocks[i].fg = (i >= cord(0, 54)) ? 8 : 0;
+        if (block.fg == 6/*main door*/ || block.fg == 8/*bedrock*/) continue;
 
-        if (i == cord(main_door, 36)) blocks[i].fg = 6; // @note main door
-        else if (i == cord(main_door, 37)) blocks[i].fg = 8; // @note bedrock (below main door)
+        block.reset();
     }
-    world.blocks = std::move(blocks);
-    world.name = std::move(name);
 }

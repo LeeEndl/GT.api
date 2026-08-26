@@ -7,29 +7,28 @@
 
 void ::database_config::init()
 {
-    std::ifstream file("mysql_login.txt");
-    if (!file.is_open())
+    std::ifstream istrm("mysql_login.txt");
+    if (!istrm.is_open())
     {
-        std::ofstream write("mysql_login.txt");
-        write << 
+        std::ofstream ostrm("mysql_login.txt");
+        ostrm << 
             std::format(
-                /* @note this is read via std::getline() into readch(), pipe-delimited format */
                 "host|{}\n"
                 "user|{}\n"
-                "password|{}\n",
+                "password|{}",
                 this->host, this->user, this->passwd
             );
-    } // @note close write
+        
+    } // @note close ostrm
     else
     {
-        std::vector<std::string> pipes;
-        for (std::string line; std::getline(file, line); ) 
+        for (std::string line; std::getline(istrm, line); ) 
         {
-            auto pipe_pair = readch(line, '|');
-            pipes.insert(pipes.end(), pipe_pair.begin(), pipe_pair.end());
+            ::hPipe hPipe{ line };
+
+            if (!hPipe["host"].empty()) this->host = hPipe["host"];
+            else if (!hPipe["user"].empty()) this->user = hPipe["user"];
+            else if (!hPipe["password"].empty()) this->passwd = hPipe["password"];
         }
-        this->host   = pipes[1];
-        this->user   = pipes[3];
-        this->passwd = pipes[5];
     } // @note delete pipes
 }

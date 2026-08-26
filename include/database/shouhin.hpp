@@ -11,7 +11,7 @@ public:
     char tex2{}; // @todo may have to change variable type···
     int cost{};
 
-    std::vector<std::pair<short, short>> im{}; // @note {id, amount}
+    std::vector<std::pair<short, short>> items{}; // @note {id, amount}
 }; 
 extern std::vector<std::pair<short, shouhin>> shouhin_tachi; // @note {tab, shouhin}
 

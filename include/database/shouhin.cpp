@@ -22,10 +22,10 @@ void parse_store()
             .cost = stoi(pipes[7])
         };
         std::vector<std::string> tachi = readch(pipes[8], ',');
-        for (std::string &im : tachi)
+        for (std::string &item : tachi)
         {
-            std::vector<std::string> co = readch(im, ':'); // @note 'co' short for colon
-            shouhin.im.emplace_back(stoi(co[0]), stoi(co[1]));
+            std::vector<std::string> co = readch(item, ':'); // @note 'co' short for colon
+            shouhin.items.emplace_back(stoi(co[0]), stoi(co[1]));
         }
         shouhin_tachi.emplace_back(stoi(pipes[0]), shouhin);
     }

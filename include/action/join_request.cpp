@@ -23,7 +23,7 @@ void action::join_request(ENetEvent& event, const std::string& header, const std
         if (name.length() > 24) throw std::runtime_error(""); // @note impossible unless using a proxy since client caps at 24
         if (!alnum(name)) throw std::runtime_error("Sorry, spaces and special characters are not allowed in world or door names.  Try again.");
 
-        std::for_each(name.begin(), name.end(), [](char& c) { c = std::toupper(c); }); // @note start -> START
+        for (char &c : name) c = std::toupper(c); // @note start -> START
         
         auto it = std::ranges::find(worlds, name, &::world::name);
         if (it == worlds.end()) 
@@ -37,10 +37,11 @@ void action::join_request(ENetEvent& event, const std::string& header, const std
             enet_peer_send(event.peer, 0, enet_packet_create(blob.data().data(), blob.size(), ENET_PACKET_FLAG_RELIABLE));
         } // @note delete data
         {
-            std::string *w_name = std::ranges::find(pPeer->recent_worlds, world.name);
-            std::string *first = w_name != pPeer->recent_worlds.end() ? w_name : pPeer->recent_worlds.begin();
+            std::string *this_world = std::ranges::find(pPeer->recent_worlds, world.name);
+            std::string *end = pPeer->recent_worlds.end();
+            std::string *first = this_world != end ? this_world : pPeer->recent_worlds.begin();
 
-            std::rotate(first, first + 1, pPeer->recent_worlds.end());
+            std::rotate(first, first + 1, end);
             pPeer->recent_worlds.back() = world.name;
         } // @note delete name, first
         on::EmoticonDataChanged(event);

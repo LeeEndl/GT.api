@@ -10,8 +10,8 @@ void ::server_data::init()
     std::ifstream file("server_data.php");
     if (!file.is_open())
     {
-        std::ofstream write("server_data.php");
-        write << 
+        std::ofstream ostrm("server_data.php");
+        ostrm << 
             std::format(
                 "server|{}\n"
                 "port|{}\n"
@@ -23,7 +23,7 @@ void ::server_data::init()
                 "RTENDMARKERBS1001", 
                 this->server, this->port, this->type, this->type2, this->maint, this->loginurl, this->meta
             );
-    } // @note close write
+    } // @note close ostrm
     else
     {
         std::vector<std::string> pipes;

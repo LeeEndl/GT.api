@@ -49,6 +49,8 @@ struct block
 
     u_char hits[2] = {0, 0}; // @note fg, bg
 
+    void reset();
+
     ::blob to_blob() const;
 };
 #define cord(x,y) (y * 100 + x)
@@ -210,5 +212,5 @@ extern bool door_mover(::world &world, const ::pos &pos);
 
 namespace blast
 {
-    extern void thermonuclear(::world &world, const std::string &name);
+    extern void thermonuclear(::world &world);
 }
