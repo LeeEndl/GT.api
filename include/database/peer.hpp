@@ -57,13 +57,6 @@ struct Billboard {
     bool perItem{}; // @note true if world locks per item, false if items per world lock
 };
 
-struct Friend {
-    std::string name{};
-    bool ignore{};
-    bool block{};
-    bool mute{};
-};
-
 enum role : u_char {
     PLAYER, 
     MODERATOR, 
@@ -103,7 +96,7 @@ public:
     u_char punch_effect{}; // @note last equipped clothing that has a effect. supporting 0-255 effects.
 
     int netid{}; // @note peer's netid is world identity. this will be useful for many packet sending
-    std::string prefix{ 'w'  }; // @note display name color, default: "w" (White)
+    std::string display_growid{}; // @note use this for displaying growid, never use ::growid
     std::string country{};
 
     u_int skin_color{ 2527912447 };
@@ -145,8 +138,6 @@ public:
     std::array<std::string, 200ull> my_worlds{}; // @note first 200 relevant worlds locked by peer.
     
     std::deque<u_int> messages; // @note last 5 que messages sent time, this is used to check for spamming
-
-    std::array<Friend, 25> friends;
 
     u_short fires_removed{};
     u_short gbc_pity{}; // @note GBC pity; for each 100 will receive super GBC

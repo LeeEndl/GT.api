@@ -10,7 +10,7 @@ void item_activate(ENetEvent& event, ::gamePacket gamePacket)
     ::peer *pPeer = static_cast<::peer*>(event.peer->data);
 
     const ::item &item = id_to_item(gamePacket.id);
-    if (item.cloth_type != clothing::none) 
+    if (item.cloth_type != clothing::NONE) 
     {
         float &current_cloth = pPeer->clothing[item.cloth_type]; // @note ID of the current clothing being changed
 

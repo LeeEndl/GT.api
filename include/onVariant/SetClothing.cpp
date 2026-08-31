@@ -7,11 +7,11 @@ void on::SetClothing(ENetPeer &peer)
 
     send_varlist(&peer, {
         "OnSetClothing", 
-        CL_Vec3f{pPeer->clothing[hair], pPeer->clothing[shirt], pPeer->clothing[legs]}, 
-        CL_Vec3f{pPeer->clothing[feet], pPeer->clothing[face], pPeer->clothing[hand]}, 
-        CL_Vec3f{pPeer->clothing[back], pPeer->clothing[head], pPeer->clothing[charm]}, 
+        CL_Vec3f{pPeer->clothing[clothing::HAIR], pPeer->clothing[clothing::SHIRT], pPeer->clothing[clothing::LEGS]}, 
+        CL_Vec3f{pPeer->clothing[clothing::FEET], pPeer->clothing[clothing::FACE], pPeer->clothing[clothing::HAND]}, 
+        CL_Vec3f{pPeer->clothing[clothing::BACK], pPeer->clothing[clothing::HEAD], pPeer->clothing[clothing::CHARM]}, 
         (pPeer->state & S_GHOST) ? -140 : pPeer->skin_color,
-        CL_Vec3f{pPeer->clothing[ances], 0.0f, 0.0f}
+        CL_Vec3f{pPeer->clothing[clothing::ANCES], 0.0f, 0.0f}
     }, pPeer->netid);
 
     ::gamePacket gamePacket {

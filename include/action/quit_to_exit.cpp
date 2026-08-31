@@ -10,8 +10,7 @@ void action::quit_to_exit(ENetEvent& event, const std::string& header, bool skip
     auto world = std::ranges::find(worlds, pPeer->recent_worlds.back(), &::world::name);
     if (world == worlds.end()) return; // @note peer was not in a world, therefore nothing to exit from.
 
-    std::string &prefix = pPeer->prefix;
-    std::string message = std::format("`5<`{}{}`` left, `w{}`` others here>``", prefix, pPeer->growid, world->visitors-1);
+    std::string message = std::format("`5<{} left, `w{}`` others here>``", pPeer->display_growid, world->visitors-1);
     std::string netid = std::format("netID|{}\n", pPeer->netid);
     std::string pId = std::format("pId|{}\n", pPeer->user_id); // @note this is found during OnSpawn 'eid', the value is the same for user_id.
     peers(pPeer->recent_worlds.back(), PEER_SAME_WORLD, [&event, pPeer, message, netid, pId](ENetPeer& peer) 
@@ -26,6 +25,6 @@ void action::quit_to_exit(ENetEvent& event, const std::string& header, bool skip
     if (--world->visitors <= 0) worlds.erase(world); // @note take 1, and if result is 0, delete memory copy of world.
     pPeer->netid = 0; // this will fix any packets being sent outside of world; this can also be used to check if peer is not in a world.
 
-    prefix.front() = (prefix.front() == '2' || prefix.front() == 'c') ? 'w' : prefix.front();
+    pPeer->display_growid = std::format("`w{}``", pPeer->growid);
     if (!skip_selection) on::RequestWorldSelectMenu(event);
 }

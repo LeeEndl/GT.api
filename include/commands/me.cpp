@@ -15,14 +15,14 @@ void me(ENetEvent& event, const std::string_view text)
             "OnTalkBubble",
             pPeer->netid,
             std::format(
-                "player_chat= `6<```{}{}`` `#{}```6>``", 
-                pPeer->prefix, pPeer->growid, message).c_str(),
+                "player_chat= `6<{} `#{}```6>``", 
+                pPeer->display_growid, message).c_str(),
             0u
         });
         on::ConsoleMessage(&peer, 
             std::format(
-                "CP:0_PL:0_OID:__CT:[W]_ `6<```{}{}`` `#{}```6>``", 
-                pPeer->prefix, pPeer->growid, message
+                "CP:0_PL:0_OID:__CT:[W]_ `6<{} `#{}```6>``", 
+                pPeer->display_growid, message
             )
         );
     });

@@ -7,22 +7,10 @@ void socialportal(ENetEvent& event, const ::hPipe &hPipe)
 
     if (hPipe["buttonClicked"] == "showfriend")
     {
-        /* temp data */
-        u_char __online{};
-
-        // @todo i will improve!! cause i hate this so much t-t
-        for (const ::Friend &Friend : pPeer->friends)
-            peers("", PEER_ALL, [&Friend, &__online](ENetPeer& peer){
-                ::peer *pOthers = static_cast<::peer*>(peer.data);
-                if (pOthers->growid == Friend.name)
-                    ++__online;
-            });
-
         send_varlist(event.peer, {
             "OnDialogRequest",
-            std::format(
                 "set_default_color|`o\n"
-                "add_label_with_icon|big|0 of {} `wFriends Online``|left|1366|\n"
+                "add_label_with_icon|big|0 of 0 `wFriends Online``|left|1366|\n"
                 "add_spacer|small|\n"
                 "add_textbox|`oNone of your friends are currently online.``|left|\n"
                 "add_spacer|small|\n"
@@ -33,9 +21,7 @@ void socialportal(ENetEvent& event, const ::hPipe &hPipe)
                 "add_button|back|Back|noflags|0|0|\n"
                 "add_button||Close|noflags|0|0|\n"
                 "end_dialog|friends|||\n"
-                "add_quick_exit|\n",
-                __online
-            )
+                "add_quick_exit|\n"
         });
     }
 }

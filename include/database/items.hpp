@@ -1,10 +1,10 @@
 #pragma once
 
 enum clothing : u_char {
-    hair, shirt, legs, 
-    feet, face, hand, 
-    back, head, charm, 
-    ances, none
+    HAIR, SHIRT, LEGS, 
+    FEET, FACE, HAND, 
+    BACK, HEAD, CHARM, 
+    ANCES, NONE
 };
 
 enum type : u_char {
@@ -182,7 +182,7 @@ public:
     u_char collision{};
     u_char hits{}; // @todo make it unsigned.
     int hit_reset{}; // @note in seconds
-    u_char cloth_type{clothing::none}; /* use clothing:: if you are unsure of the order */
+    u_char cloth_type{clothing::NONE}; /* use clothing:: if you are unsure of the order */
     short rarity{};
     int tick{}; // @note tile tick time e.g. trees, providers, ect.. (measured in seconds)
 

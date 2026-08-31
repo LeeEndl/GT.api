@@ -34,8 +34,9 @@ void action::join_request(ENetEvent& event, const std::string& header, const std
             ::blob blob = compress_state(::gamePacket{ .type = 0x04, /*PACKET_SEND_MAP_DATA*/ .state = state::S_EXTENDED });
             blob.push_back(world.serialize());
 
-            enet_peer_send(event.peer, 0, enet_packet_create(blob.data().data(), blob.size(), ENET_PACKET_FLAG_RELIABLE));
-        } // @note delete data
+            ENetPacket *packet = enet_packet_create(blob.data().data(), blob.size(), ENET_PACKET_FLAG_RELIABLE);
+            if (enet_peer_send(event.peer, 0, packet)) enet_packet_destroy(packet);
+        } // @note delete blob
         {
             std::string *this_world = std::ranges::find(pPeer->recent_worlds, world.name);
             std::string *end = pPeer->recent_worlds.end();
@@ -46,11 +47,10 @@ void action::join_request(ENetEvent& event, const std::string& header, const std
         } // @note delete name, first
         on::EmoticonDataChanged(event);
 
-        if (!pPeer->role)
-            pPeer->prefix.front() = 
-                (pPeer->user_id == world.owner) ? '2' : 
-                (std::ranges::find(world.access, pPeer->user_id) != world.access.end()) ? 'c' : 
-                pPeer->prefix.front(); // @note keeps the existing prefix
+        if (pPeer->user_id == world.owner) 
+            pPeer->display_growid = std::format("`2{}``", pPeer->growid);
+        else if (std::ranges::find(world.access, pPeer->user_id) != world.access.end()) 
+            pPeer->display_growid = std::format("`c{}``", pPeer->growid);
 
         pPeer->rest_pos = world.spawn;
 
@@ -61,10 +61,10 @@ void action::join_request(ENetEvent& event, const std::string& header, const std
             
             if (pOthers->user_id != pPeer->user_id)
             {
-                on::Spawn(*event.peer, pOthers->netid, pOthers->user_id, pOthers->pos, std::format("`{}{}", pOthers->prefix, pOthers->growid), pOthers->country, pOthers->role, pOthers->role >= DEVELOPER, false);
-                on::Spawn(peer, pPeer->netid, pPeer->user_id, pPeer->rest_pos, std::format("`{}{}", pPeer->prefix, pPeer->growid), pPeer->country, pPeer->role, pPeer->role >= DEVELOPER, false);
+                on::Spawn(*event.peer, pOthers->netid, pOthers->user_id, pOthers->pos, pOthers->display_growid, pOthers->country, pOthers->role, pOthers->role >= DEVELOPER, false);
+                on::Spawn(peer, pPeer->netid, pPeer->user_id, pPeer->rest_pos, pPeer->display_growid, pPeer->country, pPeer->role, pPeer->role >= DEVELOPER, false);
                 on::SetClothing(peer);
-                on::ConsoleMessage(&peer, std::format("`5<`{}{}`` entered, `w{}`` others here>``", pPeer->prefix, pPeer->growid, world.visitors));
+                on::ConsoleMessage(&peer, std::format("`5<{} entered, `w{}`` others here>``", pPeer->display_growid, world.visitors));
             }
             
 
@@ -73,12 +73,12 @@ void action::join_request(ENetEvent& event, const std::string& header, const std
                 send_varlist(&peer, {
                     "OnTalkBubble",
                     pPeer->netid,
-                    std::format("`5<`{}{}`` entered, `w{}`` others here>``", pPeer->prefix, pPeer->growid, world.visitors),
+                    std::format("`5<{} entered, `w{}`` others here>``", pPeer->display_growid, world.visitors),
                     1u
                 });
             }
         });
-        on::Spawn(*event.peer, pPeer->netid, pPeer->user_id, pPeer->rest_pos, std::format("`{}{}", pPeer->prefix, pPeer->growid), pPeer->country, pPeer->role, pPeer->role >= DEVELOPER, true);
+        on::Spawn(*event.peer, pPeer->netid, pPeer->user_id, pPeer->rest_pos, pPeer->display_growid, pPeer->country, pPeer->role, pPeer->role >= DEVELOPER, true);
 
         if (pPeer->billboard.id != 0) on::BillboardChange(event); // @note don't waste memory if billboard is empty.
 

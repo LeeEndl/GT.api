@@ -18,7 +18,6 @@ void ::database_config::init()
                 "password|{}",
                 this->host, this->user, this->passwd
             );
-        
     } // @note close ostrm
     else
     {

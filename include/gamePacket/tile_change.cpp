@@ -28,7 +28,7 @@ void tile_change(ENetEvent& event, ::gamePacket gamePacket)
         if (item.id == 0) return;
 
         if (block.state[3] & S_FIRE) // @note allow anyone to take out fire
-            if (pPeer->clothing[hand] == 3066/* fire hose */)
+            if (pPeer->clothing[clothing::HAND] == 3066/* fire hose */)
             {
                 remove_fire(event, gamePacket, block, *world);
                 return; // @note avoid hitting the block
@@ -48,7 +48,7 @@ void tile_change(ENetEvent& event, ::gamePacket gamePacket)
             if (!punch) // @note put all multiple punch features here
             {
                 punch = true;
-                if (pPeer->clothing[hand] == 5480) // @note Rayman's Fist
+                if (pPeer->clothing[clothing::HAND] == 5480) // @note Rayman's Fist
                 {
                     ::gamePacket copy_gamePacket = gamePacket;
 
@@ -86,7 +86,7 @@ void tile_change(ENetEvent& event, ::gamePacket gamePacket)
             }
             u_char apply_damage_value{}; // @note used to change a tile value without using send_tile_update() 
 
-            if (pPeer->clothing[hand] == 2952/*Digger's Spade*/)
+            if (pPeer->clothing[clothing::HAND] == 2952/*Digger's Spade*/)
             {
                 if(item.id == 2/*Dirt*/ || item.id == 14)
                 {
@@ -105,7 +105,7 @@ void tile_change(ENetEvent& event, ::gamePacket gamePacket)
                 {
                     const u_char number = RandomRange(0, 36);
                     const char color = (number == 0) ? '2' : (RandomRange(0, 3) < 2) ? 'b' : '4';
-                    const std::string message = std::format("[`{}{}`` spun the wheel and got `{}{}``!]", pPeer->prefix, pPeer->growid, color, number);
+                    const std::string message = std::format("[{} spun the wheel and got `{}{}``!]", pPeer->display_growid, color, number);
                     peers(pPeer->recent_worlds.back(), PEER_SAME_WORLD, [&event, &pPeer, message](ENetPeer& peer)
                     {
                         send_varlist(event.peer, { "OnTalkBubble", pPeer->netid, message }, -1, 2000);
@@ -263,11 +263,8 @@ void tile_change(ENetEvent& event, ::gamePacket gamePacket)
             }
             else if (item.type == type::LOCK && !is_tile_lock(item.id))
             {
-                if (!pPeer->role)
-                {
-                    pPeer->prefix.front() = 'w';
-                    on::NameChanged(event);
-                }
+                pPeer->display_growid = std::format("`w{}``", pPeer->growid);
+                on::NameChanged(event);
                 
                 world->owner = 0; // @todo have a seperate thing for 'range_lock'
             }
@@ -307,7 +304,7 @@ void tile_change(ENetEvent& event, ::gamePacket gamePacket)
                 pPeer->add_xp(event, std::trunc(1.0f + item.rarity / 5.0f));
             }
         } // @note delete im, id
-        else if (item.cloth_type != clothing::none) 
+        else if (item.cloth_type != clothing::NONE) 
         {
             if (gamePacket.punch != pPeer->pos.by_32(true)) throw std::runtime_error("To wear clothing, use on yourself");
 
@@ -332,7 +329,7 @@ void tile_change(ENetEvent& event, ::gamePacket gamePacket)
                 });
             }
 
-            if (item.raw_name.find("Paint Bucket - ") != std::string::npos && pPeer->clothing[hand] != 3494) throw std::runtime_error("you need a Paintbrush to apply paint!");
+            if (item.raw_name.find("Paint Bucket - ") != std::string::npos && pPeer->clothing[clothing::HAND] != 3494) throw std::runtime_error("you need a Paintbrush to apply paint!");
             if (item.raw_name.find("Hair Dye") != std::string::npos)
             {
                 if (gamePacket.punch != pPeer->pos.by_32(true)) throw std::runtime_error("Don't spill your dye!");
@@ -688,9 +685,11 @@ void tile_change(ENetEvent& event, ::gamePacket gamePacket)
                 {
                     modify_item_inventory(event, ::slot(gamePacket.id, -1));
                     send_tile_update(event, std::move(gamePacket), block, *world);
+                    return;
                 }
-                return;
             }
+            if ((item.type == type::BACKGROUND && block.bg != 0) ||
+                (item.type != type::BACKGROUND && block.fg != 0)) return; // @note an extra check, i will later make this cleaner.
             if (item.collision == collision::FULL)
             {
                 if (gamePacket.punch == gamePacket.pos.by_32(true)) return; // @todo when moving avoid collision.
@@ -717,11 +716,9 @@ void tile_change(ENetEvent& event, ::gamePacket gamePacket)
                     {
                         world->owner = pPeer->user_id;
                         lock_visuals = true;
-                        if (!pPeer->role) 
-                        {
-                            pPeer->prefix.front() = '2';
-                            on::NameChanged(event);
-                        }
+
+                        pPeer->display_growid = std::format("`2{}``", pPeer->growid);
+                        on::NameChanged(event);
                         if (std::ranges::find(pPeer->my_worlds, world->name) == pPeer->my_worlds.end()) 
                         {
                             std::ranges::rotate(pPeer->my_worlds, pPeer->my_worlds.begin() + 1);
@@ -779,10 +776,7 @@ void tile_change(ENetEvent& event, ::gamePacket gamePacket)
     }
     catch (const std::exception& exc)
     {
-        if (exc.what() && *exc.what()) 
-        {
-            send_varlist(event.peer, { "OnTalkBubble", pPeer->netid, exc.what(), 0u, 1u });
-        }
+        send_varlist(event.peer, { "OnTalkBubble", pPeer->netid, exc.what(), 0u, 1u });
         return;
     }
 }

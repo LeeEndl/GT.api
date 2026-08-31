@@ -1,3 +1,3 @@
 #pragma once
 
-extern void _connect(ENetEvent& event);
+extern void _connect(ENetEvent& event, int status = 1);

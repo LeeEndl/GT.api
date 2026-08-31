@@ -128,5 +128,6 @@ void send_varlist(ENetPeer *peer, VariantList vlist, int netid, int delay)
 	memcpy(data.data() + pos, pMem, size);
     delete[] pMem;
 
-    enet_peer_send(peer, 0, enet_packet_create(data.data(), data.size(), ENET_PACKET_FLAG_RELIABLE));
+	ENetPacket *packet = enet_packet_create(data.data(), data.size(), ENET_PACKET_FLAG_RELIABLE);
+    if (enet_peer_send(peer, 0, packet)) enet_packet_destroy(packet);
 }

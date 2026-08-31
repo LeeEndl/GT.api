@@ -5,7 +5,7 @@ class database_config
 public:
     std::string host{"127.0.0.1"};
     std::string user{"root"};
-    std::string passwd{NULL};
+    std::string passwd{};
 
     void init();
 };

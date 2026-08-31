@@ -2,8 +2,10 @@
 #include "action/quit.hpp"
 #include "connect.hpp"
 
-void _connect(ENetEvent& event) 
+void _connect(ENetEvent& event, int status) 
 {
+    ENetPacket *packet = enet_packet_create(nullptr, sizeof(status)+1, ENET_PACKET_FLAG_RELIABLE);
+
     if (peers().size() > host->peerCount) 
     {
         send_action(*event.peer, "log", 
@@ -12,12 +14,10 @@ void _connect(ENetEvent& event)
                 host->peerCount
             ));
         send_action(*event.peer, "logon_fail", ""); // @note triggers action|quit on client.
+        status = 0;
     }
-    else 
-    {
-        const enet_uint8 connect[4] = { 0x01, 0x00, 0x00, 0x00 };
-        enet_peer_send(event.peer, 0, enet_packet_create(connect, std::size(connect), ENET_PACKET_FLAG_RELIABLE));
+    event.peer->data = new peer();
 
-        event.peer->data = new peer();
-    }
+    memcpy(packet->data, &status, sizeof(status));
+    if (enet_peer_send(event.peer, 0, packet)) enet_packet_destroy(packet);
 }

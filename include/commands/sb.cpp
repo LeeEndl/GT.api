@@ -16,8 +16,8 @@ void sb(ENetEvent& event, const std::string_view text)
     {
         on::ConsoleMessage(event.peer, 
             std::format(
-                "CP:0_PL:0_OID:_CT:[SB]_ `5** from (`{}{}`````5) in [```${}```5] ** : ```${}``",
-                pPeer->prefix, pPeer->growid, display, message
+                "CP:0_PL:0_OID:_CT:[SB]_ `5** from ({}```5) in [```${}```5] ** : ```${}``",
+                pPeer->display_growid, display, message
             )
         );
     });

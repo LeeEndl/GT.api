@@ -7,7 +7,7 @@
 
 void create_blast(ENetEvent& event, const ::hPipe &hPipe)
 {
-    const u_short id = atoi(hPipe["id"].c_str());
+    const int id = atoi(hPipe["id"].c_str());
     std::string world_name = hPipe["name"];
 
     for (char &c : world_name) c = std::toupper(c); // @note start -> START

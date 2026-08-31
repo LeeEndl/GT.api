@@ -102,7 +102,7 @@ void decode_items()
             shift_pos(im_data, pos, item.cloth_type);
         }
         else pos += 1; // @note assign nothing
-        if (item.type == type::AURA) item.cloth_type = clothing::ances;
+        if (item.type == type::AURA) item.cloth_type = clothing::ANCES;
         shift_pos(im_data, pos, item.rarity);
 
         pos += sizeof(u_char);

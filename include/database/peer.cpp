@@ -3,6 +3,7 @@
 #include "world.hpp"
 #include "onVariant/SetClothing.hpp"
 #include "onVariant/CountryState.hpp"
+#include "onVariant/ConsoleMessage.hpp"
 #include "commands/punch.hpp"
 #include "tools/string.hpp"
 
@@ -146,7 +147,7 @@ u_short peer::emplace(::slot slot)
         if (it->count == 0)
         {
             const ::item &item = id_to_item(it->id);
-            if (item.cloth_type != clothing::none) this->clothing[item.cloth_type] = 0;
+            if (item.cloth_type != clothing::NONE) this->clothing[item.cloth_type] = 0;
         }
         return excess;
     }
@@ -173,13 +174,12 @@ void peer::add_xp(ENetEvent &event, u_short value)
             /* @todo based on account age give peer other items... */
         }
         if (lvl == 125) on::CountryState(event);
+        send_varlist(event.peer, { "OnPlayerLeveledUp", lvl });
+        send_varlist(event.peer, { "OnParticleEffect", 46u, CL_Vec2f{1812.0f, 1724.0f}, 0.0f, 0.0f });
 
-        send_particle_effect(event, this->pos, {0x00, 0x2e}); // @todo make particle effect smaller like growtopia
-        send_varlist(event.peer, { 
-            "OnTalkBubble", 
-            this->netid,
-            std::format("`{}{}`` is now level {}!", this->prefix, this->growid, lvl) 
-        });
+        std::string message = std::format("{} is now level {}!", this->display_growid, lvl);
+        send_varlist(event.peer, { "OnTalkBubble", this->netid, message, 0u });
+        on::ConsoleMessage(event.peer, message);
     }
 }
 
@@ -283,5 +283,6 @@ void send_inventory_state(ENetEvent &event)
 
     blob.push_back(pPeer->serialize_inventory());
 
-	enet_peer_send(event.peer, 0, enet_packet_create(blob.data().data(), blob.size(), ENET_PACKET_FLAG_RELIABLE));
+    ENetPacket *packet = enet_packet_create(blob.data().data(), blob.size(), ENET_PACKET_FLAG_RELIABLE);
+	if (enet_peer_send(event.peer, 0, packet)) enet_packet_destroy(packet);
 }

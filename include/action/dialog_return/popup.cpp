@@ -8,10 +8,10 @@ void popup(ENetEvent& event, const ::hPipe &hPipe)
 
     if (hPipe["buttonClicked"] == "my_worlds")
     {
-        auto section = [](const auto& range) 
+        auto section = [](const auto &range) 
         {
             std::string result;
-            for (const auto &name : range)
+            for (const std::string &name : range)
                 if (!name.empty())
                     result.append(std::format("add_button|{0}|{0}|noflags|0|0|\n", name));
             return result;
