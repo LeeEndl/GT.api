@@ -8,6 +8,7 @@
     #include <winsock2.h>
     #include <ws2tcpip.h>
 #else
+    #include <csignal>
     #include <unistd.h>
     #include <arpa/inet.h>
     #include <netinet/in.h>
