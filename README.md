@@ -65,6 +65,62 @@
      ```bash
      ./main.out
      ```
+# macOS
+
+> [!NOTE]
+> macOS builds are only tested on Intel (`x86_64`). Apple Silicon is not tested yet.
+> `include/enet/lib/libenet_macos.a` is a universal (`x86_64` + `arm64`) archive, so it should still link on Apple Silicon.
+
+### ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/archive.svg) 1. Install Dependencies
+
+- Install [Homebrew](https://brew.sh/) or [MacPorts](https://www.macports.org/install.php), then run the matching command. Mixing is fine: MacPorts GCC with Homebrew OpenSSL and MariaDB uses the Homebrew compile command.
+   <details><summary>Homebrew</summary>
+   <p>
+      
+   ```bash
+   brew install gcc make openssl@3 mariadb-connector-c
+   ```
+   </p>
+   </details>
+   <details><summary>MacPorts</summary>
+   <p>
+      
+   ```bash
+   sudo port install gcc15 gmake openssl3 mariadb-11.4
+   ```
+   </p>
+   </details>
+
+### ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/build.svg) 2. Compile
+
+- Apple's SDK does not include OpenSSL headers. Pass Homebrew or MacPorts paths on the `make` line. A plain `make` fails with `openssl/ssl.h: No such file or directory`. Use `-lenet_macos`; the default `-lenet` is a Linux library.
+   <details><summary>Homebrew</summary>
+   <p>
+      
+   ```bash
+   make -j$(sysctl -n hw.ncpu) \
+     includes="-Iinclude -Ibuild/include -I$(brew --prefix openssl@3)/include" \
+     libraries="-L$(brew --prefix openssl@3)/lib -L$(brew --prefix mariadb-connector-c)/lib -L./include/enet/lib -L./include/mysql/lib -lssl -lcrypto -lmariadb -lenet_macos"
+   ```
+   </p>
+   </details>
+   <details><summary>MacPorts</summary>
+   <p>
+      
+   ```bash
+   gmake -j$(sysctl -n hw.ncpu) \
+     includes="-Iinclude -Ibuild/include -I/opt/local/libexec/openssl3/include" \
+     libraries="-L/opt/local/libexec/openssl3/lib -L/opt/local/lib/mariadb-11.4/mysql -L./include/enet/lib -L./include/mysql/lib -lssl -lcrypto -lmariadb -lenet_macos"
+   ```
+   </p>
+   </details>
+
+### ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/debug-alt-small.svg) 3. Run
+   - Execute the compiled binary:
+   
+     ```bash
+     ./main.out
+     ```
 # ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/settings.svg) Local Server Configuration
 
 > [!NOTE]
